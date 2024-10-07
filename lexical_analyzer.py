@@ -6,8 +6,9 @@ class LexicalAnalyzer:
     self.keywords = keyword_file.read().splitlines()
     print(self.keywords)
     
-    self.variables = []
-    
+    self.variables = [] # Variables stored for IDENT table
+    self.current_input = "" # Current code input for Lexical Analyzer
+  
   def _isValidKeyword(self, input):
     # Return true if input is a keyword, false otherwise
     if input not in self.keywords: return False
