@@ -18,6 +18,8 @@ class LexicalAnalyzer:
     # Return true if variable starts with letter then letter or digit, false otherwise
     if input == "": return False
     if not input[0].isalpha(): return False
+    for char in input: # Must only contain letters and digits
+      if not char.isalnum(): return False
     return True
   
   def _isValidInteger(self, input):
