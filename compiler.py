@@ -2,10 +2,10 @@ from lexical_analyzer import LexicalAnalyzer
 
 class Compiler:
   def __init__(self):
-    self.complete = False
     self.lexical_analyzer = LexicalAnalyzer()
+    self.tokenize_code = ""
   
-  def compile(self, code):
+  def compile(self, code: str):
     """ Compile the source code """
 
     # Check if the code is valid
@@ -14,17 +14,22 @@ class Compiler:
       return
     
     # Compile the code
-    split_code = code.split()
-    if (split_code[0] != "IOL" or split_code[-1] != "LOI"):
-      raise Exception("Compilation Error! Invalid code format")
-    
-    # Conduct lexical analysis
-    for word in split_code:
-      self.lexical_analyzer.tokenizeInput(word)
+    code = code.strip() 
+    split_code = code.split('\n')
+    print(split_code)
 
-if __name__ == "__main__":
-  compiler = Compiler()
-  try:
-    compiler.compile("LOI ADD 5 5 LOI")
-  except Exception as e:
-    print(e)
+    if (not split_code[0].strip().split()[0] == 'IOL'):
+      raise Exception("Error: Invalid code")
+    
+    if (not split_code[-1].strip().split()[-1] == 'LOI'):
+      raise Exception("Error: Invalid code")
+    
+    # Remove the IOL and LOI
+    split_code[0] = split_code[0].replace('IOL', '')
+    split_code[-1] = split_code[-1].replace('LOI', '')
+
+    final_input = "\n".join(split_code)
+    self.lexical_analyzer.tokenizeInput(final_input)
+    
+    
+
