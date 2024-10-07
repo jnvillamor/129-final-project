@@ -1,7 +1,10 @@
+from lexical_analyzer import LexicalAnalyzer
+
 class Compiler:
   def __init__(self):
     self.complete = False
-
+    self.lexical_analyzer = LexicalAnalyzer()
+  
   def compile(self, code):
     """ Compile the source code """
 
@@ -14,7 +17,10 @@ class Compiler:
     split_code = code.split()
     if (split_code[0] != "IOL" or split_code[-1] != "LOI"):
       raise Exception("Compilation Error! Invalid code format")
-      
+    
+    # Conduct lexical analysis
+    for word in split_code:
+      self.lexical_analyzer.tokenizeInput(word)
 
 if __name__ == "__main__":
   compiler = Compiler()
