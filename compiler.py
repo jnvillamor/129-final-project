@@ -16,7 +16,6 @@ class Compiler:
     # Compile the code
     code = code.strip() 
     split_code = code.split('\n')
-    print(split_code)
 
     if (not split_code[0].strip().split()[0] == 'IOL'):
       raise Exception("Error: Invalid code")
@@ -30,6 +29,27 @@ class Compiler:
 
     final_input = "\n".join(split_code)
     self.lexical_analyzer.tokenizeInput(final_input)
-    
+
+if __name__ == "__main__":
+  input = """
+IOL
+  INT num IS 0 INT res IS 0
+  STR msg1 STR msg2 STR msg3
+  BEG msg1 BEG msg2
+  BEG msg3
+  NEWLN PRINT msg1
+  NEWLN
+  INTO res IS MULT num num
+  PRINT msg2
+  PRINT MULT num 2
+  NEWLN
+  PRINT msg3
+  PRINT res
+LOI
+  """
+  
+  compiler = Compiler()
+  compiler.compile(input)
+  
     
 
