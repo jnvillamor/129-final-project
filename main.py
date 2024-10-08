@@ -64,7 +64,7 @@ def tokenize_code(code):
     combined_regex = '|'.join(f'(?P<{key}>{value})' for key, value in patterns.items())
     for match in re.finditer(combined_regex, code):
         token_type = match.lastgroup
-        token_value = match.group(token_type)
+        token_value = match.group(str(token_type))
         if token_type != 'WHITESPACE':
             tokens.append((token_value, token_type))
     return tokens
@@ -131,7 +131,8 @@ def apply_theme():
 
     # Button canvas background updates
     for widget in button_container.winfo_children():
-        widget.config(bg=bg_color)
+        if isinstance(widget, tk.Canvas):
+            widget.config(bg=bg_color)
 
 # Set up the main window
 main_window = tk.Tk()
