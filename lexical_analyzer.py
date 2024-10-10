@@ -84,8 +84,6 @@ class LexicalAnalyzer:
       
       # Write output after tokenization
       self.writeOutput()
-      
-      print(self.tokens)
                  
   def tokenizeWord(self, word):
     # Iterate through each valid lexeme and return the token
