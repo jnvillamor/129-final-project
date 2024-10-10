@@ -183,6 +183,7 @@ class CompilerApp:
 
   # Function for Lexical Analysis (tokenization)
   def compile_code(self):
+    if(not self.current_display_input): return
     self.output_label.config(text="Performing Lexical Analysis...")
     code = self.code_text.get(1.0, tk.END).strip() # Get the code from the editor
     
@@ -194,6 +195,7 @@ class CompilerApp:
     
     try:        
         # Compile the code
+        self.reset_output_and_tree()
         code = code.strip()
         self.current_input = code
         split_code = code.split('\n')
@@ -218,13 +220,11 @@ class CompilerApp:
         # tokens = tokenize_input(code)
         variables = self.symbol_table.get_symbol_table()
         self.display_variables(variables)
-
         self.tokenized_output = self.lexical_analyzer.output
         self.output_label.config(text="Lexical Analysis successful. No errors found.")
     except Exception as e:
         self.output_label.config(text=f"Lexical Analysis failed. {str(e)}")
         return
-
 
   # Function to perform tokenization based on regex patterns
   def show_tokenized_output(self):
@@ -269,6 +269,8 @@ class CompilerApp:
 
   # Function to reset the output label and variable table
   def reset_output_and_tree(self):
+    self.variables = []
+    self.symbol_table.remove_all_symbols()
     self.output_label.config(text="Output will be shown here.")
     for item in self.tree.get_children():
       self.tree.delete(item)

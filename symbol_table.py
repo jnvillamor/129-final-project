@@ -7,6 +7,9 @@ class SymbolTable:
   
   def get_symbol(self, symbol: str):
     return self.symbol_table[symbol]
+
+  def remove_all_symbols(self):
+    self.symbol_table = {}
   
   def get_symbol_table(self):
     return self.symbol_table

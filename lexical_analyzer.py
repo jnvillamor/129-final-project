@@ -67,6 +67,8 @@ class LexicalAnalyzer:
     print("Error raised at line " + str(self.current_line_number) + ": " + word)
 
   def tokenizeInput(self, current_input):
+    # Tokenize the input code
+      self.output = "" # Reset output
       current_input = current_input.split("\n")
       self.current_line_number = 0
       
