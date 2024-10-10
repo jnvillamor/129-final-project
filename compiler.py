@@ -1,9 +1,11 @@
 from lexical_analyzer import LexicalAnalyzer
+from symbol_table import SymbolTable
 
 class Compiler:
   def __init__(self):
     self.lexical_analyzer = LexicalAnalyzer()
     self.tokenize_code = ""
+    self.symbol_table = SymbolTable()
   
   def compile(self, code: str):
     """ Compile the source code """
@@ -29,27 +31,33 @@ class Compiler:
 
     final_input = "\n".join(split_code)
     self.lexical_analyzer.tokenizeInput(final_input)
+    
+    # Append variables to the symbol table
+    for variable in self.lexical_analyzer.variables:
+      print(variable)
+      
+      self.symbol_table.add_symbol(variable.get("name"), variable.get("data_type"), variable.get("value"))
 
-if __name__ == "__main__":
-  input = """
-IOL
-  INT num IS 0 INT res IS 0
-  STR msg1 STR msg2 STR msg3
-  BEG msg1 BEG msg2
-  BEG msg3
-  NEWLN PRINT msg1
-  NEWLN
-  INTO res IS MULT num num
-  PRINT msg2
-  PRINT MULT num 2 
-  NEWLN
-  PRINT msg3
-  PRINT res
-LOI
-  """
+# if __name__ == "__main__":
+#   input = """
+# IOL
+#   INT num IS 0 INT res IS 0
+#   STR msg1 STR msg2 STR msg3
+#   BEG msg1 BEG msg2
+#   BEG msg3
+#   NEWLN PRINT msg1
+#   NEWLN
+#   INTO res IS MULT num num
+#   PRINT msg2
+#   PRINT MULT num 2 
+#   NEWLN
+#   PRINT msg3
+#   PRINT res
+# LOI
+#   """
   
-  compiler = Compiler()
-  compiler.compile(input)
+#   compiler = Compiler()
+#   compiler.compile(input)
   
     
 

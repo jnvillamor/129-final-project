@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import ttk, Menu, filedialog, messagebox
 import re
+from compiler import Compiler
+from lexical_analyzer import LexicalAnalyzer
 
 # Global variable for theme mode
 is_dark_mode = True
@@ -42,16 +44,23 @@ def save_file_as():
         main_window.title(f"LEXICAL ANALYZER - {file_path.split('/')[-1]}")
 
 # Function for Lexical Analysis (tokenization)
-def analyze_code():
-    code = code_text.get(1.0, tk.END).strip()
+def compile_code():
+    compiler = Compiler() # Load the compiler
+    code = code_text.get(1.0, tk.END).strip() # Get the code from the editor
+    
+    # Check if code is empty
     if not code:
         messagebox.showwarning("Alert", "Please input or load code for analysis.")
         return
-    tokens = tokenize_code(code)
-    display_tokens(tokens)
+    
+    compiler.compile(code) # Compile the code
+
+    # tokens = tokenize_input(code)
+    variables = compiler.symbol_table.get_symbol_table()
+    display_variables(variables)
 
 # Function to perform tokenization based on regex patterns
-def tokenize_code(code):
+def tokenize_input(code):
     tokens = []
     patterns = {
         'NUMBER': r'\b\d+\b',
@@ -69,11 +78,19 @@ def tokenize_code(code):
             tokens.append((token_value, token_type))
     return tokens
 
-# Function to display tokens in the table
-def display_tokens(tokens):
+# Function to display variables in the symbol table
+def display_variables(variable_list):
     reset_output_and_tree()
-    for token_value, token_type in tokens:
-        tree.insert('', 'end', values=(token_value, token_type, ''))
+    print(variable_list)
+    
+    # Insert variables into the treeview widget
+    for variable in variable_list:
+        # Access the 'type' and 'value' from the dictionary
+        var_type = variable_list[variable]['type']
+        var_value = variable_list[variable]['value'] if variable_list[variable]['value'] else ''
+        
+        # Insert values into the treeview
+        tree.insert('', 'end', values=(variable, var_type, var_value))
 
 # Function for syntax analysis (dummy implementation for now)
 def analyze_syntax():
@@ -170,8 +187,8 @@ menu.add_cascade(label="File", menu=file_menu)
 
 # Compile Menu
 compile_menu = Menu(menu, tearoff=0)
-compile_menu.add_command(label="Compile Code", command=analyze_code, accelerator="Ctrl+C")
-compile_menu.add_command(label="Show Tokenized Code", command=analyze_code, accelerator="Ctrl+T")
+compile_menu.add_command(label="Compile Code", command=compile_code, accelerator="Ctrl+C")
+compile_menu.add_command(label="Show Tokenized Code", command=compile_code, accelerator="Ctrl+T")
 menu.add_cascade(label="Compile", menu=compile_menu)
 
 # Run Menu
@@ -186,8 +203,8 @@ main_window.bind("<Control-n>", lambda event: clear_editor())
 main_window.bind("<Control-o>", lambda event: open_file())
 main_window.bind("<Control-s>", lambda event: save_file())
 main_window.bind("<Control-S>", lambda event: save_file_as())
-main_window.bind("<Control-c>", lambda event: analyze_code())
-main_window.bind("<Control-t>", lambda event: analyze_code())
+main_window.bind("<Control-c>", lambda event: compile_code())
+main_window.bind("<Control-t>", lambda event: compile_code())
 main_window.bind("<Control-e>", lambda event: execute_code())
 
 # Code display area
@@ -205,22 +222,24 @@ output_label.pack(fill="both", expand=True)
 # Variables table
 variables_frame = tk.Frame(main_window, bg=bg_color, bd=0)
 variables_frame.place(relx=0.7, rely=0.1, relwidth=0.27, relheight=0.65)
-tree = ttk.Treeview(variables_frame, columns=("Variable", "Type", "Value"), show="headings")
+tree = ttk.Treeview(variables_frame, columns=("Variable", "Type"), show="headings")
 tree.heading("Variable", text="Variable")
 tree.heading("Type", text="Type")
-tree.heading("Value", text="Value")
+# tree.heading("Value", text="Value")
 tree.column("Variable", anchor="center", width=80)
 tree.column("Type", anchor="center", width=80)
-tree.column("Value", anchor="center", width=80)
+# tree.column("Value", anchor="center", width=80)
 tree.pack(fill="both", expand=True)
 
 # Tokenized button
 button_container = tk.Frame(main_window, bg=bg_color, bd=0)
 button_container.place(relx=0.7, rely=0.78, relwidth=0.27, relheight=0.18)
-tokenized_button = generate_rounded_button(button_container, "Show Tokenized Output", analyze_code)
+tokenized_button = generate_rounded_button(button_container, "Show Tokenized Output", compile_code)
 
 # Apply initial theme
 apply_theme()
 
-# Start the application
-main_window.mainloop()
+if __name__ == "__main__":
+    # Start the application
+    main_window.mainloop()
+    compiler = Compiler()
