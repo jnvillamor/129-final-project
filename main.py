@@ -228,13 +228,18 @@ class CompilerApp:
 
   # Function to perform tokenization based on regex patterns
   def show_tokenized_output(self):
-    self.code_text.delete(1.0, tk.END)
     if(self.current_display_input):
-        self.code_text.insert(tk.END, self.tokenized_output)
+        if self.tokenized_output != "": 
+            self.code_text.delete(1.0, tk.END)
+            self.code_text.insert(tk.END, self.tokenized_output)
+            self.current_display_input = not self.current_display_input
     else:
-        self.code_text.insert(tk.END, self.current_input)
+        print()
+        if self.current_input != "":
+            self.code_text.delete(1.0, tk.END)
+            self.code_text.insert(tk.END, self.current_input)
+            self.current_display_input = not self.current_display_input
     
-    self.current_display_input = not self.current_display_input
 
   # Function to display variables in the symbol table
   def display_variables(self, variable_list):
