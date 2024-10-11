@@ -1,4 +1,9 @@
 class SymbolTable:
+  """ 
+    Class to represent the symbol table.
+    Stores the symbol, type and value of the symbol.
+    In this program, this class stores variables encountered in the input code.
+  """
   def __init__(self):
     self.symbol_table = {}
   
@@ -9,7 +14,7 @@ class SymbolTable:
     return self.symbol_table[symbol]
 
   def remove_all_symbols(self):
-    self.symbol_table = {}
+    self.symbol_table.clear()
   
   def get_symbol_table(self):
     return self.symbol_table
