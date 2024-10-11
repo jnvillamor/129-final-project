@@ -1,23 +1,27 @@
+# CMSC 129 PE02
+# by DUYAG, PADERNA, VILLAMOR
+
 import tkinter as tk
 from tkinter import ttk, Menu, filedialog, messagebox
-from compiler import Compiler
 from lexical_analyzer import LexicalAnalyzer
 from symbol_table import SymbolTable
 
 class CompilerApp:
+  """
+  Main class to represent the Lexical Analyzer IDE.
+  """
   def __init__(self):
     self.lexical_analyzer = LexicalAnalyzer()
     self.is_dark_mode = True
     self.variables = []
     self.current_input = ""
-    self.compiler = Compiler()
     self.tokenized_output = ""
     self.symbol_table = SymbolTable()
     self.current_display_input = True
 
     # Set up the main window
     self.main_window = tk.Tk()
-    self.main_window.title("LEXICAL ANALYZER")
+    self.main_window.title("PE02 - Lexical Analyzer")
     self.main_window.geometry("900x600")
     
     # Set initial theme to dark mode
@@ -31,7 +35,7 @@ class CompilerApp:
     self.header_frame.pack(fill="x", pady=5)
 
     # Header Label
-    self.header_label = tk.Label(self.header_frame, text="Lexical Analyzer IDE", font=("Arial", 16, "bold"), bg=self.bg_color, fg=self.text_color)
+    self.header_label = tk.Label(self.header_frame, text="PE02 - Lexical Analyzer", font=("Arial", 16, "bold"), bg=self.bg_color, fg=self.text_color)
     self.header_label.pack(side="left", padx=20)
 
     # Toggle Button for Light/Dark mode
@@ -52,7 +56,7 @@ class CompilerApp:
     # Compile Menu
     self.compile_menu = Menu(self.menu, tearoff=0)
     self.compile_menu.add_command(label="Compile Code", command=self.compile_code, accelerator="Ctrl+C")
-    self.compile_menu.add_command(label="Show Tokenized Code", command=self.compile_code, accelerator="Ctrl+T")
+    # self.compile_menu.add_command(label="Show Tokenized Output", command=self.show_tokenized_output, accelerator="Ctrl+T")
     self.menu.add_cascade(label="Compile", menu=self.compile_menu)
 
     # Run Menu
@@ -80,7 +84,7 @@ class CompilerApp:
     # Output area
     self.output_frame = tk.Frame(self.main_window, bg=self.bg_color, bd=0, relief="flat")
     self.output_frame.place(relx=0.03, rely=0.78, relwidth=0.65, relheight=0.18)
-    self.output_label = tk.Label(self.output_frame, text="Output will be shown here.", font=("Consolas", 12), bg=self.frame_color, fg=self.text_color, anchor="nw", padx=10, pady=10)
+    self.output_label = tk.Label(self.output_frame, text="Awaiting action...", font=("Consolas", 12), bg=self.frame_color, fg=self.text_color, anchor="nw", padx=10, pady=10)
     self.output_label.pack(fill="both", expand=True)
 
     # Variables table
@@ -102,8 +106,9 @@ class CompilerApp:
 
   def run(self):
     self.apply_theme()
+    
+    # Run the main application
     self.main_window.mainloop()
-  
   
   # Function to apply theme changes
   def apply_theme(self):
@@ -143,7 +148,6 @@ class CompilerApp:
 
     # Apply theme changes
     self.apply_theme()
-    
 
   # Function to generate a button with rounded corners
   def generate_rounded_button(self, parent, label, action):
@@ -165,6 +169,8 @@ class CompilerApp:
         self.code_text.delete(1.0, tk.END)
         self.code_text.insert(tk.END, code_content)
         self.main_window.title(f"LEXICAL ANALYZER - {file_path.split('/')[-1]}")
+    
+      self.output_label.config(text="Input .iol file loaded successfully.")
   
   # Function to save the current code to a file
   def save_file(self):
@@ -183,73 +189,116 @@ class CompilerApp:
 
   # Function for Lexical Analysis (tokenization)
   def compile_code(self):
-    if(not self.current_display_input): return
-    self.output_label.config(text="Performing Lexical Analysis...")
-    code = self.code_text.get(1.0, tk.END).strip() # Get the code from the editor
-    
-    # Check if code is empty
-    if not code:
-        messagebox.showwarning("Alert", "Please input or load code for analysis.")
-        self.output_label.config(text="Lexical Analysis failed. No code to analyze.")
-        return
-    
-    try:        
-        # Compile the code
-        self.reset_output_and_tree()
-        code = code.strip()
-        self.current_input = code
-        split_code = code.split('\n')
+      if not self.current_display_input:
+          return
+      self.output_label.config(text="Performing Lexical Analysis...")
+      code = self.code_text.get(1.0, tk.END).strip()  # Get the code from the editor
+      
+      # Check if code is empty
+      if not code:
+          messagebox.showwarning("Alert", "Please input or load code for analysis.")
+          self.output_label.config(text="Lexical Analysis failed. No code to analyze.")
+          return
 
-        if (not split_code[0].strip().split()[0] == 'IOL'):
-            raise Exception("Error: Invalid code")
-        
-        if (not split_code[-1].strip().split()[-1] == 'LOI'):
-            raise Exception("Error: Invalid code")
-        
-        # Remove the IOL and LOI
-        split_code[0] = split_code[0].replace('IOL', '')
-        split_code[-1] = split_code[-1].replace('LOI', '')
+      try:
+          # Reset the output, lexical analyzer, and symbol table
+          self.reset_output_and_tree()  # Clear any existing output
+          self.symbol_table.remove_all_symbols()  # Clear the symbol table
+          self.lexical_analyzer.variables.clear()  # Reset lexical analyzer variables
 
-        final_input = "\n".join(split_code)
-        self.lexical_analyzer.tokenizeInput(final_input)
-    
-        # Append variables to the symbol table
-        for variable in self.lexical_analyzer.variables:
-         self.symbol_table.add_symbol(variable.get("name"), variable.get("data_type"), variable.get("value"))
+          # Strip and process the code
+          code = code.strip()
+          self.current_input = code
+          split_code = code.split('\n')
 
-        # tokens = tokenize_input(code)
-        variables = self.symbol_table.get_symbol_table()
-        self.display_variables(variables)
-        self.tokenized_output = self.lexical_analyzer.output
-        self.output_label.config(text="Lexical Analysis successful. No errors found.")
-    except Exception as e:
-        self.output_label.config(text=f"Lexical Analysis failed. {str(e)}")
-        return
+          if split_code[0].strip().split()[0] != 'IOL': # Check if the first line is IOL
+              raise Exception("Error: Invalid code")
+
+          if split_code[-1].strip().split()[-1] != 'LOI': # Check if the last line is LOI
+              raise Exception("Error: Invalid code")
+
+          # Remove the IOL and LOI
+          split_code[0] = split_code[0].replace('IOL', '')
+          split_code[-1] = split_code[-1].replace('LOI', '')
+
+          # Join the code back together
+          final_input = "\n".join(split_code)
+          self.lexical_analyzer.tokenizeInput(final_input)
+
+          # Append variables to the symbol table
+          for variable in self.lexical_analyzer.variables:
+              self.symbol_table.add_symbol(variable.get("name"), variable.get("data_type"), variable.get("value"))
+              
+          # Display the updated symbol table
+          variables = self.symbol_table.get_symbol_table()
+          self.show_variables(variables)
+          
+          # Update tokenized output
+          self.tokenized_output = self.lexical_analyzer.output
+          
+          # Check for lexical errors and display them
+          if self.lexical_analyzer.errors:
+              error_message = "\n".join(self.lexical_analyzer.errors)
+              self.output_label.config(text=f"Lexical Analysis completed with errors:\n{error_message}")
+          
+          # If no errors, display success message
+          else:
+              self.output_label.config(text="Partial code compilation (lexical analysis only) successful.")
+      
+      # Handle exceptions
+      except Exception as e:
+          self.output_label.config(text=f"Lexical Analysis failed. {str(e)}")
 
   # Function to perform tokenization based on regex patterns
   def show_tokenized_output(self):
-    if(self.current_display_input):
-        if self.tokenized_output != "": 
-            self.code_text.delete(1.0, tk.END)
-            self.code_text.insert(tk.END, self.tokenized_output)
-            self.current_display_input = not self.current_display_input
+    
+    # Block if code is not compiled yet
+    if (self.tokenized_output == ""):
+        messagebox.showwarning("Alert", "Please compile the code first.")
+        return
+    
+    # Toggle between original input and tokenized output
+    if (self.current_display_input):
+        if self.tokenized_output != "": # Check if tokenized output is not empty
+            # Create a new window to show the tokenized output
+            token_window = tk.Toplevel()
+            token_window.title("Tokenized Code")
+
+            # Create a text widget inside the new window to display the tokenized output
+            token_text = tk.Text(token_window, wrap=tk.WORD)
+            token_text.pack(expand=True, fill=tk.BOTH)
+
+            # Insert the tokenized output
+            token_text.insert(tk.END, self.tokenized_output)
+
+            # Make the tokenized output read-only
+            token_text.config(state=tk.DISABLED)
+
+            self.current_display_input = not self.current_display_input # Toggle display input flag
+    
+    # Else: Display original input
     else:
-        print()
-        if self.current_input != "":
+        if self.current_input != "": 
             self.code_text.delete(1.0, tk.END)
             self.code_text.insert(tk.END, self.current_input)
             self.current_display_input = not self.current_display_input
-    
 
   # Function to display variables in the symbol table
-  def display_variables(self, variable_list):
-    self.reset_output_and_tree()
+  def show_variables(self, variable_list):
     
+    # Clear existing rows in the treeview
+    for item in self.tree.get_children():
+        self.tree.delete(item)
+        
     # Insert variables into the treeview widget
     for variable in variable_list:
         # Access the 'type' and 'value' from the dictionary
         var_type = variable_list[variable]['type']
         var_value = variable_list[variable]['value'] if variable_list[variable]['value'] else ''
+        
+        # If type is error, go to the next variable
+        if var_type == "ERROR":
+            continue
         
         # Insert values into the treeview
         self.tree.insert('', 'end', values=(variable, var_type, var_value))
@@ -269,12 +318,13 @@ class CompilerApp:
 
   # Function to reset the output label and variable table
   def reset_output_and_tree(self):
-    self.variables = []
-    self.symbol_table.remove_all_symbols()
-    self.output_label.config(text="Output will be shown here.")
-    for item in self.tree.get_children():
-      self.tree.delete(item)
+    self.current_input = "" # Reset current input
+    self.variables = [] # Reset variables
+    self.symbol_table.remove_all_symbols() # Clear the symbol table
+    self.show_variables(self.symbol_table.get_symbol_table()) # Clear the treeview widget
+    self.output_label.config(text="Awaiting action...") # Reset the output label
 
+# Main function to run the application
 if __name__ == "__main__":
   app = CompilerApp()
   app.run()
