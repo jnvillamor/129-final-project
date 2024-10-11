@@ -6,10 +6,7 @@ class LexicalAnalyzer:
   In this program, this class tokenizes the input code and stores the tokens in a .tkn file.
   """
   def __init__(self):
-    # Set up the keywords and operators
-    keyword_file = open("keywords.txt", "r")
-    self.keywords = keyword_file.read().splitlines()
-    
+    self.keywords = ["INT", "STR", "ADD", "SUB", "MULT", "DIV", "MOD", "INTO", "IS", "BEG", "PRINT", "NEWLN", "IOL", "LOI"] # List of keywords
     self.current_input = "" # Current code input fed to Lexical Analyzer
     self.output = "" # Output of the Lexical Analyzer for .tkn file
     self.variables = [] # List of scanned variables and their data types
