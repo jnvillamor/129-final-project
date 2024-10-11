@@ -206,10 +206,6 @@ class CompilerApp:
         if (not split_code[-1].strip().split()[-1] == 'LOI'):
             raise Exception("Error: Invalid code")
         
-        # Remove the IOL and LOI
-        split_code[0] = split_code[0].replace('IOL', '')
-        split_code[-1] = split_code[-1].replace('LOI', '')
-
         final_input = "\n".join(split_code)
         self.lexical_analyzer.tokenizeInput(final_input)
     
