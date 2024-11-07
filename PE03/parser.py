@@ -11,7 +11,7 @@
 
 class Parser:
   def __init__(self):
-    self.prod_table = None
+    self.prod_table = []
     self.parse_table = None 
    
     self.stack = []
@@ -21,14 +21,32 @@ class Parser:
     
     self.is_valid = bool
 
-  def getInput(self, input_file):
+  def getInput(self, input_file: str):
     if input_file.endswith('.prod'):
-      # File Validation
-      self.prod_table = input_file
-    
+      try:
+        with open(input_file, "r", encoding="UTF-8") as file:
+          lines = file.readlines()
+          for line in lines:
+            self.prod_table.append(line.strip().split(','))
+        
+      except:
+        print('Error: File not found')
+        return("Error - file not found")
+
+      print("PROD: " + self.prod_table)
+
     if input_file.endswith('.ptbl'):
-      # File validation
-      self.parse_table = input_file
+      try:
+        with open(input_file, "r", encoding="UTF-8") as file:
+          lines = file.readlines()
+          for line in lines:
+            self.parse_table.append(line.strip().split(','))
+        
+      except:
+        print(f'Error: {input_file} not found')
+        return("Error - file not found")
+      
+      print("PTBL: " + self.parse_table)
       
     # If invalid input file, return error message
     if not (input_file.endswith('.prod') or input_file.endswith('.ptbl')):
