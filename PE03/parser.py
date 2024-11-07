@@ -12,7 +12,7 @@
 class Parser:
   def __init__(self):
     self.prod_table = []
-    self.parse_table = None 
+    self.parse_table = []
    
     self.stack = []
     self.input_buffer = []
@@ -55,7 +55,7 @@ class Parser:
   
     # Return input status message
     print("LOADED: " + input_file)
-    return("Loaded: " + input_file)    
+    return("Loaded: " + input_file)
    
   def parse(self, input_string):
     
