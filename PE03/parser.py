@@ -33,7 +33,7 @@ class Parser:
         print('Error: File not found')
         return("Error - file not found")
 
-      print("PROD: " + self.prod_table)
+      print(self.prod_table)
 
     if input_file.endswith('.ptbl'):
       try:
@@ -46,7 +46,7 @@ class Parser:
         print(f'Error: {input_file} not found')
         return("Error - file not found")
       
-      print("PTBL: " + self.parse_table)
+      print(self.parse_table)
       
     # If invalid input file, return error message
     if not (input_file.endswith('.prod') or input_file.endswith('.ptbl')):

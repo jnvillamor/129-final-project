@@ -109,9 +109,11 @@ class ParsingApp:
     self.output_table.pack(fill="both", expand=True)
 
   def load_file(self):
-      # Placeholder for file loading logic
-      pass
-
+    # tkinter open file dialog of type .prod or .ptbl
+    input_file = filedialog.askopenfilename(filetypes=[("InputFiles", "*.prod *.ptbl")])
+    
+    self.parser.getInput(input_file)
+    
   def parse_input(self):
       # Placeholder for parse button functionality
       pass
