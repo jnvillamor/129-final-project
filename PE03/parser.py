@@ -11,24 +11,8 @@
 
 class Parser:
   def __init__(self):
-    self.prod_table = [
-        ['1', 'E', 'T E\''],
-        ['2', 'E\'', '+ T E\''],
-        ['3', 'E\'', 'e'],
-        ['4', 'T', "F T'"],
-        ['5', 'T\'', '* F T\''],
-        ['6', 'T\'', 'e'],
-        ['7', 'F', '(E)'],
-        ['8', 'F', 'id']
-      ]
-    self.parse_table = [
-        ['', 'id', '+', '*', '(', ')', '$'], 
-        ['E', '1', '', '', '1', '', ''],
-        ['E\'', '', '2', '', '', '3', '3'],
-        ['T', '4', '', '', '4', '', ''],
-        ['T\'', '', '6', '5', '', '6', '6'],
-        ['F', '8', '', '', '7', '', '']
-      ]
+    self.prod_table = [] 
+    self.parse_table = []
    
     self.stack = []
     self.input_buffer = []
@@ -146,7 +130,3 @@ class Parser:
     # Export to .prsd file
     
     pass
-
-if __name__ == "__main__":
-  parser = Parser()
-  parser.parse('id + id * id')
