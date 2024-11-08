@@ -11,8 +11,24 @@
 
 class Parser:
   def __init__(self):
-    self.prod_table = []
-    self.parse_table = []
+    self.prod_table = [
+        ['1', 'E', 'T E\''],
+        ['2', 'E\'', '+ T E\''],
+        ['3', 'E\'', 'e'],
+        ['4', 'T', "F T'"],
+        ['5', 'T\'', '* F T\''],
+        ['6', 'T\'', 'e'],
+        ['7', 'F', '(E)'],
+        ['8', 'F', 'id']
+      ]
+    self.parse_table = [
+        ['', 'id', '+', '*', '(', ')', '$'], 
+        ['E', '1', '', '', '1', '', ''],
+        ['E\'', '', '2', '', '', '3', '3'],
+        ['T', '4', '', '', '4', '', ''],
+        ['T\'', '', '6', '5', '', '6', '6'],
+        ['F', '8', '', '', '7', '', '']
+      ]
    
     self.stack = []
     self.input_buffer = []
@@ -57,13 +73,80 @@ class Parser:
     print("LOADED: " + input_file)
     return("Loaded: " + input_file)
    
-  def parse(self, input_string):
-    
-    pass
+  def get_parse_row(self, symbol: str):
+    for ind, X in enumerate(self.parse_table):
+      if X[0] == symbol:
+        return ind
   
+  def get_parse_col(self, symbol: str):
+    for ind, X in enumerate(self.parse_table[0]):
+      if X == symbol:
+        return ind
+
+  def parse(self, input_string: str):
+    # Initialize the input buffer and stack
+    self.input_buffer = input_string.strip().split(' ')
+    self.stack.append('$')
+    self.stack.append(self.prod_table[0][1])
+    
+    # Add to the total output the initial
+    self.total_output.append([' '.join(self.stack[::-1]), ' '.join(self.input_buffer) + '$', ''])
+    # Get the current symbol and input
+    current_symbol = self.stack.pop()
+    current_input = self.input_buffer[0]
+  
+    # Parse the input string 
+    while (current_symbol != '$' and len(self.stack) != 0):
+      # If the symbol and input match, pop the stack and input buffer
+      if(current_symbol == current_input):
+        self.action.append(f'Match {current_symbol}')
+        self.input_buffer.pop(0)
+        self.total_output.append([' '.join(self.stack[::-1]), ' '.join(self.input_buffer) + '$', self.action[-1]])
+        
+        current_symbol = self.stack.pop()
+        current_input = self.input_buffer[0] if len(self.input_buffer) != 0 else '$'
+        
+
+      # If the symbol is a terminal and does not match the input, add an error
+      elif(current_symbol.islower() and current_symbol != current_input):
+        self.action.append('Error')
+        break
+      
+      elif(current_symbol.isupper()):
+        # Get the production from the parse table
+        parse_row = self.get_parse_row(current_symbol)
+        parse_col = self.get_parse_col(current_input)
+        parse_cell = self.parse_table[parse_row][parse_col]
+        if parse_cell == '':
+          self.action.append('Error')
+          break
+
+        production = self.prod_table[int(parse_cell) - 1][2]
+
+        for symbol in production.strip().split(' ')[::-1]:
+          self.stack.append(symbol) if symbol != 'e' else None
+        self.action.append(f'Output {current_symbol} > {production}')
+        self.total_output.append([' '.join(self.stack[::-1]), ' '.join(self.input_buffer) + '$', self.action[-1]])
+        current_symbol = self.stack.pop()
+    
+    # If the stack is empty, the input is valid
+    if len(self.stack) == 0:
+      self.is_valid = True
+      self.action.append('Match $')
+      self.total_output.append(['', '', self.action[-1]])
+    else:
+      self.is_valid = False
+    
+    for line in self.total_output:
+      print(line)
+
   def exportOutput(self):
     # Append to total_output 
     
     # Export to .prsd file
     
     pass
+
+if __name__ == "__main__":
+  parser = Parser()
+  parser.parse('id + id * id')
