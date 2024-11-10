@@ -21,6 +21,7 @@ class Parser:
     self.total_output = []
     
     self.is_valid = bool
+    self.file_path = str
 
   '''
   getInput(input_file: str) -> str[]
@@ -28,6 +29,11 @@ class Parser:
   The function returns a status message indicating whether the input file was successfully loaded.
   '''
   def getInput(self, input_file: str):
+    # Get the file path
+    self.file_path = input_file.split('/')[:-1]
+    self.file_path = '/'.join(self.file_path)
+
+
     if input_file.endswith('.prod'):
       try:
         with open(input_file, "r", encoding="UTF-8") as file:
@@ -155,9 +161,8 @@ class Parser:
       print(line)
 
 
-  def exportOutput(self):
-    # Append to total_output 
-    
-    # Export to .prsd file
-    
+  def exportOutput(self, output_file_name = "output"):
+    file = open(f'{self.file_path}/{output_file_name}.prsd', "w")
+    for line in self.total_output:
+      file.write(','.join(line) + '\n')
     pass
