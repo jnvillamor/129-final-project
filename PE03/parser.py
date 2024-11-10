@@ -11,9 +11,10 @@
 
 class Parser:
   def __init__(self):
-    self.prod_table = [] 
+    self.prod_table = []
     self.parse_table = []
-   
+    self.tokens= set()
+
     self.stack = []
     self.input_buffer = []
     self.action = []
@@ -21,19 +22,26 @@ class Parser:
     
     self.is_valid = bool
 
+  '''
+  getInput(input_file: str) -> str[]
+  This function reads the input file and stores the contents in the appropriate table.
+  The function returns a status message indicating whether the input file was successfully loaded.
+  '''
   def getInput(self, input_file: str):
     if input_file.endswith('.prod'):
       try:
         with open(input_file, "r", encoding="UTF-8") as file:
           lines = file.readlines()
           for line in lines:
+            prod_file = line.strip().split(',')
+            prod_symbols = prod_file[2].strip().split(' ')
+            for symbol in prod_symbols:
+              self.tokens.add(symbol) if symbol.islower() or symbol in ['+', '-', '*', '/', '%'] else None
             self.prod_table.append(line.strip().split(','))
         
       except:
         print('Error: File not found')
         return("Error - file not found")
-
-      print(self.prod_table)
 
     if input_file.endswith('.ptbl'):
       try:
@@ -46,8 +54,6 @@ class Parser:
         print(f'Error: {input_file} not found')
         return("Error - file not found")
       
-      print(self.parse_table)
-      
     # If invalid input file, return error message
     if not (input_file.endswith('.prod') or input_file.endswith('.ptbl')):
       print('Error: Input file is not a .prod or .ptbl file')
@@ -56,18 +62,42 @@ class Parser:
     # Return input status message
     print("LOADED: " + input_file)
     return("Loaded: " + input_file)
-   
+  
+  def is_valid_input(self, input: str) -> bool: 
+    # Check if input is valid
+    for symbol in input.strip().split(' '):
+      if symbol not in self.tokens:
+        return False
+    return True
+
+  '''
+  get_parse_row(symbol: str) -> int
+  This function returns the row of the parse table corresponding to the given symbol.
+  '''
   def get_parse_row(self, symbol: str):
     for ind, X in enumerate(self.parse_table):
       if X[0] == symbol:
         return ind
   
+  '''
+  get_parse_col(symbol: str) -> int
+  This function returns the column of the parse table corresponding to the given symbol.
+  '''
   def get_parse_col(self, symbol: str):
     for ind, X in enumerate(self.parse_table[0]):
       if X == symbol:
         return ind
 
+  '''
+  parse(input_string: str)
+  This function parses the input string using the production and parse tables.
+  '''
   def parse(self, input_string: str):
+    # Check if input is valid
+    if not self.is_valid_input(input_string):
+      print('Error: Invalid input')
+      return("Error - invalid input")
+
     # Initialize the input buffer and stack
     self.input_buffer = input_string.strip().split(' ')
     self.stack.append('$')
@@ -112,7 +142,7 @@ class Parser:
         self.action.append(f'Output {current_symbol} > {production}')
         self.total_output.append([' '.join(self.stack[::-1]), ' '.join(self.input_buffer) + '$', self.action[-1]])
         current_symbol = self.stack.pop()
-    
+
     # If the stack is empty, the input is valid
     if len(self.stack) == 0:
       self.is_valid = True
@@ -120,9 +150,10 @@ class Parser:
       self.total_output.append(['', '', self.action[-1]])
     else:
       self.is_valid = False
-    
+
     for line in self.total_output:
       print(line)
+
 
   def exportOutput(self):
     # Append to total_output 
