@@ -130,6 +130,10 @@ class ParsingApp:
         self.parse_table.insert("", "end", values=i)
             
     self.input_status.config(text=f"LOADED: {file_name}") # Update input status label 
+    
+    # Clear current output table
+    for i in self.output_table.get_children():
+      self.output_table.delete(i)
   
   '''
   parseInput(self: ParsingApp) -> None
