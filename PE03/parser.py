@@ -1,14 +1,6 @@
-# Note: If the result of parsing is VALID, the output file should contain the complete solution of the parsing. 
-# If the result of parsing is INVALID, the output file should contain the partial solution of the parsing to the point where parsing can no longer proceed. 
-# (invalid) Then add another line stating an error (under the Action column).
-
-# Has three columns:
-# 1. Stack: The current stack of the parser
-# 2. Input Buffer: The current input buffer
-# 3. Action: The action taken by the parser
-
-# Parser starts here
-
+'''
+Class for parsing the input string using user-input production and parse tables.
+'''
 class Parser:
   def __init__(self):
     self.prod_table = []
@@ -33,7 +25,6 @@ class Parser:
     self.file_path = input_file.split('/')[:-1]
     self.file_path = '/'.join(self.file_path)
 
-
     if input_file.endswith('.prod'):
       try:
         with open(input_file, "r", encoding="UTF-8") as file:
@@ -45,6 +36,8 @@ class Parser:
               self.tokens.add(symbol) if symbol.islower() or symbol in ['+', '-', '*', '/', '%'] else None
             self.prod_table.append(line.strip().split(','))
         
+        return ("prod", input_file.strip().split('/')[-1], self.prod_table)
+        
       except:
         print('Error: File not found')
         return("Error - file not found")
@@ -55,6 +48,8 @@ class Parser:
           lines = file.readlines()
           for line in lines:
             self.parse_table.append(line.strip().split(','))
+            
+        return ("ptbl", input_file.strip().split('/')[-1], self.parse_table)
         
       except:
         print(f'Error: {input_file} not found')
@@ -65,11 +60,11 @@ class Parser:
       print('Error: Input file is not a .prod or .ptbl file')
       return("Error - invalid input file")
   
-    # Return input status message
-    print("LOADED: " + input_file)
-    return("Loaded: " + input_file)
-  
-  def is_valid_input(self, input: str) -> bool: 
+  '''
+  isValidInput(input: str) -> bool
+  This function checks if the input string is valid based on the tokens in the production table.
+  '''
+  def isValidInput(self, input: str) -> bool: 
     # Check if input is valid
     for symbol in input.strip().split(' '):
       if symbol not in self.tokens:
@@ -77,19 +72,19 @@ class Parser:
     return True
 
   '''
-  get_parse_row(symbol: str) -> int
+  getParseRow(symbol: str) -> int
   This function returns the row of the parse table corresponding to the given symbol.
   '''
-  def get_parse_row(self, symbol: str):
+  def getParseRow(self, symbol: str):
     for ind, X in enumerate(self.parse_table):
       if X[0] == symbol:
         return ind
   
   '''
-  get_parse_col(symbol: str) -> int
+  getParseCol(symbol: str) -> int
   This function returns the column of the parse table corresponding to the given symbol.
   '''
-  def get_parse_col(self, symbol: str):
+  def getParseCol(self, symbol: str):
     for ind, X in enumerate(self.parse_table[0]):
       if X == symbol:
         return ind
@@ -100,7 +95,7 @@ class Parser:
   '''
   def parse(self, input_string: str):
     # Check if input is valid
-    if not self.is_valid_input(input_string):
+    if not self.isValidInput(input_string):
       print('Error: Invalid input')
       return("Error - invalid input")
 
@@ -134,8 +129,8 @@ class Parser:
       
       elif(current_symbol.isupper()):
         # Get the production from the parse table
-        parse_row = self.get_parse_row(current_symbol)
-        parse_col = self.get_parse_col(current_input)
+        parse_row = self.getParseRow(current_symbol)
+        parse_col = self.getParseCol(current_input)
         parse_cell = self.parse_table[parse_row][parse_col]
         if parse_cell == '':
           self.action.append('Error')
@@ -157,10 +152,12 @@ class Parser:
     else:
       self.is_valid = False
 
-    for line in self.total_output:
-      print(line)
+    return self.total_output
 
-
+  '''
+  exportOutput(output_file_name: str) -> None
+  This function exports the output to a .prsd file.
+  '''
   def exportOutput(self, output_file_name = "output"):
     file = open(f'{self.file_path}/{output_file_name}.prsd', "w")
     for line in self.total_output:
