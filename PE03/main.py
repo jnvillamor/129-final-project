@@ -151,6 +151,12 @@ class ParsingApp:
       return
     
     output = self.parser.parse(input_string) # Parse the input string
+
+    if (type(output) == str and "Error" in output):
+      self.output_status.config(text=f"Parsing result: Failed | {output}")
+      # Tkinter error message box
+      tk.messagebox.showerror("Error", output)
+      return
     
     self.printOutput(output) # Display the output to the output table and save to a .prsd file
     
