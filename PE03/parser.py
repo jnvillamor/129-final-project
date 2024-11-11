@@ -13,6 +13,7 @@ class Parser:
     self.total_output = []
     
     self.is_valid = bool
+    self.error_message = str
     self.file_path = str
 
   '''
@@ -96,8 +97,10 @@ class Parser:
   def parse(self, input_string: str):
     # Check if input is valid
     if not self.isValidInput(input_string):
+      self.error_message = 'Invalid input'
+      self.is_valid = False
       print('Error: Invalid input')
-      return("Error - invalid input")
+      return(self.is_valid, self.error_message, 'Error: Invalid input')
 
     # Initialize the input buffer and stack
     self.input_buffer = input_string.strip().split(' ')
@@ -124,7 +127,10 @@ class Parser:
 
       # If the symbol is a terminal and does not match the input, add an error
       elif(current_symbol.islower() and current_symbol != current_input):
-        self.action.append('Error')
+        self.action.append('Error: Terminal mismatch')
+        self.error_message = 'Terminal mismatch'
+        self.total_output.append([' '.join(self.stack[::-1]), ' '.join(self.input_buffer) + '$', self.action[-1]])
+        self.is_valid = False
         break
       
       elif(current_symbol.isupper()):
@@ -133,7 +139,10 @@ class Parser:
         parse_col = self.getParseCol(current_input)
         parse_cell = self.parse_table[parse_row][parse_col]
         if parse_cell == '':
-          self.action.append('Error')
+          self.is_valid = False
+          self.action.append('Error: No production found')
+          self.error_message = 'No production found'
+          self.total_output.append([' '.join(self.stack[::-1]), ' '.join(self.input_buffer) + '$', self.action[-1]])
           break
 
         production = self.prod_table[int(parse_cell) - 1][2]
@@ -149,10 +158,8 @@ class Parser:
       self.is_valid = True
       self.action.append('Match $')
       self.total_output.append(['', '', self.action[-1]])
-    else:
-      self.is_valid = False
 
-    return self.total_output
+    return (self.is_valid, self.error_message, self.total_output)
 
   '''
   exportOutput(output_file_name: str) -> None

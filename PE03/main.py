@@ -150,7 +150,7 @@ class ParsingApp:
       tk.messagebox.showerror("Error", "Load a production and parse table file first.")
       return
     
-    output = self.parser.parse(input_string) # Parse the input string
+    is_valid, error_message, output = self.parser.parse(input_string) # Parse the input string
 
     if (type(output) == str and "Error" in output):
       self.output_status.config(text=f"Parsing result: Failed | {output}")
@@ -158,6 +158,12 @@ class ParsingApp:
       tk.messagebox.showerror("Error", output)
       return
     
+    elif not is_valid:
+      self.output_status.config(text=f"Parsing result: Failed | {error_message}")
+      # Tkinter error message box
+      tk.messagebox.showerror("Error", error_message)
+      return
+
     self.printOutput(output) # Display the output to the output table and save to a .prsd file
     
   '''
@@ -166,6 +172,7 @@ class ParsingApp:
   The function takes in the parsed output as a list of lists.
   '''
   def printOutput(self, output):
+    
     for i in output: # Load content tuple to output table
       self.output_table.insert("", "end", values=i)
     
