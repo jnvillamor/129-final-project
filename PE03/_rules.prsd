@@ -1,9 +1,0 @@
-E $,id + + id$,
-T E' $,id + + id$,Output E > T E'
-F T' E' $,id + + id$,Output T > F T'
-id T' E' $,id + + id$,Output F > id
-T' E' $,+ + id$,Match id
-E' $,+ + id$,Output T' > e
-+ T E' $,+ + id$,Output E' > + T E'
-T E' $,+ id$,Match +
-E' $,+ id$,Error

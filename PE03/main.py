@@ -158,23 +158,27 @@ class ParsingApp:
       tk.messagebox.showerror("Error", output)
       return
     
-    elif not is_valid:
-      self.output_status.config(text=f"Parsing result: Failed | {error_message}")
-      # Tkinter error message box
-      tk.messagebox.showerror("Error", error_message)
-      return
 
-    self.printOutput(output) # Display the output to the output table and save to a .prsd file
+    self.printOutput(is_valid, error_message, output) # Display the output to the output table and save to a .prsd file
     
   '''
   printOutput(self: ParsingApp, output: list) -> None
   Function to display the output to the output table and save the output to a .prsd file.
   The function takes in the parsed output as a list of lists.
   '''
-  def printOutput(self, output):
+  def printOutput(self, is_valid, error_message, output):
+    # Clear current output table
+    for i in self.output_table.get_children():
+      self.output_table.delete(i)
     
     for i in output: # Load content tuple to output table
       self.output_table.insert("", "end", values=i)
+    
+
+    if not is_valid:
+      self.output_status.config(text=f"Parsing result: Failed | {error_message}")
+      # Tkinter error message box
+      tk.messagebox.showerror("Error", error_message)
     
     # Configure output filename
     output_filepath = filedialog.asksaveasfilename(defaultextension=f".prsd", filetypes=[("OutputFiles", "*.prsd")])

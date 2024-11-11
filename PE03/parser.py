@@ -95,6 +95,8 @@ class Parser:
   This function parses the input string using the production and parse tables.
   '''
   def parse(self, input_string: str):
+    self.total_output = []
+    
     # Check if input is valid
     if not self.isValidInput(input_string):
       self.error_message = 'Invalid input'
