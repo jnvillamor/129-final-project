@@ -3,7 +3,7 @@
 
 # Libraries
 import tkinter as tk
-from tkinter import ttk, filedialog 
+from tkinter import ttk, filedialog, messagebox 
 from parser import Parser
 
 '''
@@ -137,11 +137,18 @@ class ParsingApp:
   The output will be displayed to the output table and saved to a .prsd file.
   '''
   def parseInput(self):
-    input_string = self.input_entry.get()
+    input_string = self.input_entry.get() # Get input string from input entry
     
-    output = self.parser.parse(input_string)
+    # If no production or parse table is loaded, prompt user to load a file
+    if self.prod_table_label.cget("text") == "Productions: " or self.parse_table_label.cget("text") == "Parse Table: ":
+      self.output_status.config(text="Parsing result: Failed | Load a production and parse table file first.")
+      # Tkinter error message box
+      tk.messagebox.showerror("Error", "Load a production and parse table file first.")
+      return
     
-    self.printOutput(output)
+    output = self.parser.parse(input_string) # Parse the input string
+    
+    self.printOutput(output) # Display the output to the output table and save to a .prsd file
     
   '''
   printOutput(self: ParsingApp, output: list) -> None
