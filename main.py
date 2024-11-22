@@ -72,7 +72,6 @@ class CompilerApp:
     self.main_window.bind("<Control-s>", lambda event: self.save_file())
     self.main_window.bind("<Control-S>", lambda event: self.save_file_as())
     self.main_window.bind("<Control-c>", lambda event: self.compile_code())
-    self.main_window.bind("<Control-t>", lambda event: self.compile_code())
     self.main_window.bind("<Control-e>", lambda event: self.execute_code())
 
     # Code display area
@@ -189,8 +188,10 @@ class CompilerApp:
 
   # Function for Lexical Analysis (tokenization)
   def compile_code(self):
-      if not self.current_display_input:
+    
+      if not self.current_display_input: 
           return
+        
       self.output_label.config(text="Performing Lexical Analysis...")
       code = self.code_text.get(1.0, tk.END).strip()  # Get the code from the editor
       
@@ -239,7 +240,7 @@ class CompilerApp:
           
           # If no errors, display success message
           else:
-              self.output_label.config(text="Partial code compilation (lexical analysis only) successful.")
+              self.output_label.config(text="Partial code compilation (lexical & syntax analysis only) successful.")
       
       # Handle exceptions
       except Exception as e:
@@ -247,37 +248,39 @@ class CompilerApp:
 
   # Function to perform tokenization based on regex patterns
   def show_tokenized_output(self):
-    
-    # Block if code is not compiled yet
-    if (self.tokenized_output == ""):
-        messagebox.showwarning("Alert", "Please compile the code first.")
-        return
-    
-    # Toggle between original input and tokenized output
-    if (self.current_display_input):
-        if self.tokenized_output != "": # Check if tokenized output is not empty
-            # Create a new window to show the tokenized output
-            token_window = tk.Toplevel()
-            token_window.title("Tokenized Code")
-
-            # Create a text widget inside the new window to display the tokenized output
-            token_text = tk.Text(token_window, wrap=tk.WORD)
-            token_text.pack(expand=True, fill=tk.BOTH)
-
-            # Insert the tokenized output
-            token_text.insert(tk.END, self.tokenized_output)
-
-            # Make the tokenized output read-only
-            token_text.config(state=tk.DISABLED)
-
-            self.current_display_input = not self.current_display_input # Toggle display input flag
-    
-    # Else: Display original input
-    else:
-        if self.current_input != "": 
-            self.code_text.delete(1.0, tk.END)
-            self.code_text.insert(tk.END, self.current_input)
-            self.current_display_input = not self.current_display_input
+      # Get current text from code display area
+      current_text = self.code_text.get(1.0, tk.END).strip()
+      
+      # If text has been modified or not compiled yet
+      if current_text != self.current_input or not self.tokenized_output:
+          messagebox.showwarning("Alert", "Please compile the code first.")
+          return
+          
+      # Create tokenized output window
+      token_window = tk.Toplevel()
+      token_window.title("Tokenized Code")
+      token_window.geometry("600x400")
+      
+      # Configure window to match main theme
+      token_window.configure(bg=self.bg_color)
+      
+      # Create text widget for tokenized output
+      token_text = tk.Text(
+          token_window, 
+          wrap=tk.WORD,
+          font=("Consolas", 12),
+          bg=self.frame_color,
+          fg=self.text_color,
+          padx=10,
+          pady=10
+      )
+      token_text.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
+      
+      # Insert tokenized output
+      token_text.insert(tk.END, self.tokenized_output)
+      
+      # Make text read-only
+      token_text.config(state=tk.DISABLED)
 
   # Function to display variables in the symbol table
   def show_variables(self, variable_list):
