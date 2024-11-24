@@ -1,6 +1,8 @@
 '''
 Class for parsing the input string using user-input production and parse tables.
 '''
+from parse_tree import ParseTree
+
 class Parser:
   def __init__(self):
     self.prod_table = []
@@ -15,6 +17,8 @@ class Parser:
     self.is_valid = bool
     self.error_message = str
     self.file_path = str
+
+    self.parse_tree = None
 
   '''
   getInput(input_file: str) -> str[]
@@ -85,6 +89,7 @@ class Parser:
   '''
   def parse(self, input_tokens: str):
     self.total_output = []
+    self.parse_tree = ParseTree()
 
     # Split the input tokens into lines
     input_tokens = input_tokens.strip().split('\n')
@@ -107,6 +112,9 @@ class Parser:
     self.stack.append('$')
     self.stack.append(self.prod_table[0][1])
     
+    # Initialize the parse tree with the start symbol
+    self.parse_tree.set_root(self.prod_table[0][1])
+    
     # Add to the total output the initial
     self.total_output.append([' '.join(self.stack[::-1]), ' '.join(self.input_buffer) + '$', ''])
     # Get the current symbol and input
@@ -119,6 +127,9 @@ class Parser:
       print(self.total_output[-1])
       # If the symbol and input match, pop the stack and input buffer
       if(current_symbol == current_input):
+        self.parse_tree.add_node(current_symbol, "terminal")
+        self.parse_tree.move_up()
+        
         self.action.append(f'Match {current_symbol}')
         self.input_buffer.pop(0)
         current_token_position += 1
@@ -150,9 +161,20 @@ class Parser:
           break
 
         production = self.prod_table[int(parse_cell) - 1][2]
+        production_symbols = production.strip().split(' ')
 
-        for symbol in production.strip().split(' ')[::-1]:
-          self.stack.append(symbol) if symbol != 'e' else None
+        # Add production to parse tree
+        for symbol in production_symbols:
+          if symbol != 'e':
+            new_node = self.parse_tree.add_node(symbol, 
+              "terminal" if symbol.isupper() or symbol in ['+', '-', '*', '/', '%'] 
+              else "non-terminal")
+        
+        # Add symbols to stack in reverse order
+        for symbol in production_symbols[::-1]:
+          if symbol != 'e':
+            self.stack.append(symbol)
+        
         self.action.append(f'Output {current_symbol} > {production}')
         self.total_output.append([' '.join(self.stack[::-1]), ' '.join(self.input_buffer) + '$', self.action[-1]])
         current_symbol = self.stack.pop()
@@ -177,10 +199,20 @@ class Parser:
       file.write(','.join(line) + '\n')
     pass
 
-if __name__ == "__main__":
-  parser = Parser()
-  parser.getInput('grammar.prod')
-  parser.getInput('grammar.ptbl')
-  parser.parse('output.tkn')
-  parser.exportOutput('output1')
- 
+  def get_parse_tree(self):
+    """Returns the parse tree if parsing was successful"""
+    return self.parse_tree
+
+# if __name__ == "__main__":
+#   parser = Parser()
+#   parser.getInput('grammar.prod')
+#   parser.getInput('grammar.ptbl')
+#   input_token_file = 'output.tkn'
+#   with open(input_token_file, 'r') as file:
+#     input_tokens = file.read()
+#   parser.parse(input_tokens)
+#   if parser.is_valid:
+#     parse_tree = parser.get_parse_tree()
+#     parse_tree.print_tree()
+#   else:
+#     print(parser.error_message)
