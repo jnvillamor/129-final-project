@@ -83,31 +83,27 @@ class Parser:
   parse(input_string: str)
   This function parses the input string using the production and parse tables.
   '''
-  def parse(self, input_string: str):
+  def parse(self, input_tokens: str):
     self.total_output = []
-    # Read the input file and save its content
-    try:
-      with open(input_string, "r", encoding="UTF-8") as file:
-        input = file.read().strip().split('\n')
-    except:
-      print(f'Error: {input_string} not found')
-      return("Error - file not found")
 
+    # Split the input tokens into lines
+    input_tokens = input_tokens.strip().split('\n')
+    
     # Create a mapping of token positions to line numbers
     token_line_map = {}
     current_position = 0
     
     # Process each line to create token position mapping
-    for line_num, line in enumerate(input, 1):
+    for line_num, line in enumerate(input_tokens, 1):
       tokens = line.strip().split()
       for token in tokens:
         token_line_map[current_position] = line_num
         current_position += 1
 
-    input = ''.join(input)
+    input_tokens = ''.join(input_tokens)
 
     # Initialize the input buffer and stack
-    self.input_buffer = input.strip().split(' ')
+    self.input_buffer = input_tokens.strip().split(' ')
     self.stack.append('$')
     self.stack.append(self.prod_table[0][1])
     

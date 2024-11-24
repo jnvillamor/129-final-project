@@ -252,32 +252,26 @@ class CompilerApp:
   def perform_syntax_analysis(self):
     try:
         # Load production and parse tables
-        prod_status = self.parser.getInput("grammar/arithmetic.prod")
+        prod_status = self.parser.getInput("grammar.prod")
         if prod_status[0] == "Error":
             raise Exception("Failed to load production rules")
             
-        parse_status = self.parser.getInput("grammar/arithmetic.ptbl")
+        parse_status = self.parser.getInput("grammar.ptbl")
         if parse_status[0] == "Error":
             raise Exception("Failed to load parse table")
         
-        # Extract tokens for parsing
-        tokens_to_parse = []
-        for token in self.lexical_analyzer.tokens:
-            if token['type'] in ['ARITHMETIC_OPERATOR', 'NUMBER', 'IDENTIFIER']:
-                tokens_to_parse.append(token['value'])
-        
-        # Join tokens and perform parsing
-        parse_input = " ".join(tokens_to_parse)
-        is_valid, error_message, parse_output = self.parser.parse(parse_input)
-        
-        if not is_valid:
-            self.output_label.config(text=f"Compilation failed at syntax analysis:\n{error_message}")
-            return False
-        
-        # Export parse output
-        self.parser.exportOutput("parse_output")
-        return True
+        # Get the tokenized code
+        print(self.tokenized_output)
+        tokenized_code = self.tokenized_output
+        is_valid, error_message, parse_output = self.parser.parse(tokenized_code)
 
+        # Output if the parse is valid or not
+        if is_valid:
+          self.output_label.config(text="Syntax Analysis successful. No errors found.")
+        else:
+          self.output_label.config(text=f"Syntax Analysis failed:\n{error_message}")
+          return False
+        
     except Exception as e:
         self.output_label.config(text=f"Syntax Analysis failed: {str(e)}")
         return False
