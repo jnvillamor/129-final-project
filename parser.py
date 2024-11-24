@@ -133,8 +133,9 @@ class Parser:
 
       # If the symbol is a terminal and does not match the input, add an error
       elif(current_symbol.isupper() and current_symbol != current_input):
-        self.action.append('Error: Terminal mismatch')
-        self.error_message = 'Terminal mismatch'
+        error_line = token_line_map.get(current_token_position, 'unknown')
+        self.action.append(f'Error at line {error_line}: Terminal mismatch - Expected {current_symbol}, found {current_input}')
+        self.error_message = f'Terminal mismatch at line {error_line}'
         self.total_output.append([' '.join(self.stack[::-1]), ' '.join(self.input_buffer) + '$', self.action[-1]])
         self.is_valid = False
         break
@@ -145,9 +146,10 @@ class Parser:
         parse_col = self.getParseCol(current_input)
         parse_cell = self.parse_table[parse_row][parse_col]
         if parse_cell == '':
+          error_line = token_line_map.get(current_token_position, 'unknown')
+          self.action.append(f'Error at line {error_line}: No production found for input {current_input}')
+          self.error_message = f'No production found at line {error_line}'
           self.is_valid = False
-          self.action.append('Error: No production found')
-          self.error_message = 'No production found'
           self.total_output.append([' '.join(self.stack[::-1]), ' '.join(self.input_buffer) + '$', self.action[-1]])
           break
 
