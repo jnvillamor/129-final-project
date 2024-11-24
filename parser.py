@@ -93,7 +93,19 @@ class Parser:
       print(f'Error: {input_string} not found')
       return("Error - file not found")
 
+    # Create a mapping of token positions to line numbers
+    token_line_map = {}
+    current_position = 0
+    
+    # Process each line to create token position mapping
+    for line_num, line in enumerate(input, 1):
+      tokens = line.strip().split()
+      for token in tokens:
+        token_line_map[current_position] = line_num
+        current_position += 1
+
     input = ''.join(input)
+
     # Initialize the input buffer and stack
     self.input_buffer = input.strip().split(' ')
     self.stack.append('$')
@@ -104,6 +116,7 @@ class Parser:
     # Get the current symbol and input
     current_symbol = self.stack.pop()
     current_input = self.input_buffer[0]
+    current_token_position = 0
   
     # Parse the input string 
     while (current_symbol != '$' and len(self.stack) != 0):
@@ -112,6 +125,7 @@ class Parser:
       if(current_symbol == current_input):
         self.action.append(f'Match {current_symbol}')
         self.input_buffer.pop(0)
+        current_token_position += 1
         self.total_output.append([' '.join(self.stack[::-1]), ' '.join(self.input_buffer) + '$', self.action[-1]])
         
         current_symbol = self.stack.pop()
