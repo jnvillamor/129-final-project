@@ -1,4 +1,4 @@
-# CMSC 129 PE02
+# CMSC 129 PE04
 # by DUYAG, PADERNA, VILLAMOR
 
 import tkinter as tk
@@ -6,10 +6,11 @@ from tkinter import ttk, Menu, filedialog, messagebox
 from lexical_analyzer import LexicalAnalyzer
 from symbol_table import SymbolTable
 from parser import Parser
+from semantic_analyzer import SemanticAnalyzer
 
 class CompilerApp:
   """
-  Main class to represent the Lexical Analyzer IDE.
+  Main class to represent the IDE.
   """
   def __init__(self):
     self.is_dark_mode = True
@@ -21,10 +22,10 @@ class CompilerApp:
     self.symbol_table = SymbolTable()
     self.lexical_analyzer = LexicalAnalyzer()
     self.parser = Parser()
-    
+    self.semantic_analyzer = SemanticAnalyzer()
     # Set up the main window
     self.main_window = tk.Tk()
-    self.main_window.title("PE02 - Lexical Analyzer")
+    self.main_window.title("PE04 - Syntax Analyzer")
     self.main_window.geometry("900x600")
     
     # Set initial theme to dark mode
@@ -38,7 +39,7 @@ class CompilerApp:
     self.header_frame.pack(fill="x", pady=5)
 
     # Header Label
-    self.header_label = tk.Label(self.header_frame, text="PE02 - Lexical Analyzer", font=("Arial", 16, "bold"), bg=self.bg_color, fg=self.text_color)
+    self.header_label = tk.Label(self.header_frame, text="PE04 - Syntax Analyzer", font=("Arial", 16, "bold"), bg=self.bg_color, fg=self.text_color)
     self.header_label.pack(side="left", padx=20)
 
     # Toggle Button for Light/Dark mode
@@ -280,7 +281,23 @@ class CompilerApp:
     except Exception as e:
         self.output_label.config(text=f"Syntax Analysis failed: {str(e)}")
         return False
-      
+  
+  # Function to perform semantic analysis on the tokenized code
+  def perform_semantic_analysis(self):
+   try:
+       # Get the current code from the text widget
+       code = self.code_text.get(1.0, tk.END).strip()
+       
+       # Perform semantic analysis
+       self.semantic_analyzer.analyze_code(code)
+       
+       # If no errors, update the output label
+       self.output_label.config(text="Semantic Analysis successful. No errors found.")
+       return True
+   except Exception as e:
+       self.output_label.config(text=f"Semantic Analysis failed: {str(e)}")
+       return False
+    
   def compile_code(self):
       """Main compilation function that coordinates lexical and syntax analysis."""
       if not self.current_display_input:
@@ -295,7 +312,12 @@ class CompilerApp:
           
       # Phase 2: Syntax Analysis
       self.output_label.config(text="Performing Syntax Analysis...")
-      # if not self.perform_syntax_analysis():
+      if not self.perform_syntax_analysis():
+          return
+        
+      # Phase 3: Semantic Analysis
+      # self.output_label.config(text="Performing Semantic Analysis...")
+      # if not self.perform_semantic_analysis():
       #     return
           
       # If both phases succeed
