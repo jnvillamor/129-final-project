@@ -1,0 +1,26 @@
+1,Program,IOL Statements LOI
+2,Statements,Statement StatementsTail
+3,StatementsTail,Statement StatementsTail
+4,StatementsTail, e
+5,Statement,VariableDeclaration
+6,Statement,Assignment
+7,Statement,Input
+8,Statement,Output
+9,VariableDeclaration,DataType IDENT VarDeclTail
+10,VarDeclTail,IS Value
+11,VarDeclTail,e
+12,Assignment,INTO IDENT IS Expression
+13,Input,BEG IDENT
+14,Output,PRINT Expression
+15,Output,NEWLN
+16,Expression,Operator Expression Expression
+17,Expression,Value
+18,Value,INT_LIT
+19,Value,IDENT
+20,Operator,ADD
+21,Operator,SUB
+22,Operator,MULT
+23,Operator,DIV
+24,Operator,MOD
+25,DataType,INT
+26,DataType,STR
