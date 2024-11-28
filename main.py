@@ -17,6 +17,7 @@ class CompilerApp:
     self.variables = []
     self.current_input = ""
     self.tokenized_output = ""
+    self.file_directory = ""
     self.current_display_input = True
     
     self.symbol_table = SymbolTable()
@@ -166,8 +167,12 @@ class CompilerApp:
 
   # Function to open a file and load its content
   def open_file(self):
-    file_path = filedialog.askopenfilename(filetypes=[("Input files", "*.iol"), ("All files", "*.*")])
+    file_path = filedialog.askopenfilename(filetypes=[("Input files", "*.iol")])
     if file_path:
+      # Get the file directory
+      self.file_directory = file_path.split("/")
+      self.file_directory = "/".join(self.file_directory[:-1])
+      
       with open(file_path, 'r') as file:
         code_content = file.read()
         self.code_text.delete(1.0, tk.END)
@@ -193,60 +198,65 @@ class CompilerApp:
 
   # Function to perform lexical analysis (tokenization) on the code
   def perform_lexical_analysis(self):
+    # Reset output and tree
+    self.reset_output_and_tree()
+    self.symbol_table.remove_all_symbols()
+    self.lexical_analyzer.variables.clear()
+
+    # Get the current code from the text widget
     code = self.code_text.get(1.0, tk.END).strip()
+    self.current_input = code
     
     # Check if code is empty
     if not code:
-        messagebox.showwarning("Alert", "Please input or load code for analysis.")
-        self.output_label.config(text="Lexical Analysis failed. No code to analyze.")
-        return False
+      messagebox.showwarning("Alert", "Please input or load code for analysis.")
+      self.output_label.config(text="Lexical Analysis failed. No code to analyze.")
+      return False
+    
+    # Check if the code is valid: Valid code starts with IOL and ends with LOI (case-sensitive)
+    start_code = code.split("\n")[0].strip().split(' ')[0]
+    end_code = code.split("\n")[-1].strip().split(' ')[-1] 
+    
+    if start_code != "IOL" or end_code != "LOI":
+      messagebox.showwarning("Alert", "Invalid code. Please ensure that the code starts with IOL and ends with LOI.")
+      self.output_label.config(text="Lexical Analysis failed. Invalid code.")
+      return False
+    
+    # Perform lexical analysis
+    self.lexical_analyzer.tokenizeInput(code)
 
-    try:
-        # Reset all states
-        self.reset_output_and_tree()
-        self.symbol_table.remove_all_symbols()
-        self.lexical_analyzer.variables.clear()
+    # Update symbol table
+    for variable in self.lexical_analyzer.variables:
+      self.symbol_table.add_symbol(
+        variable["name"],
+        variable["data_type"],
+        variable["value"]
+      )
+    
+    # Update displays
+    variables = self.symbol_table.get_symbol_table()
+    self.show_variables(variables)
 
-        # Process the code
-        code = code.strip()
-        self.current_input = code
-        split_code = code.split('\n')
-
-        # Validate IOL and LOI
-        if split_code[0].strip().split()[0] != 'IOL':
-            raise Exception("Error: Invalid code - Must start with IOL")
-
-        if split_code[-1].strip().split()[-1] != 'LOI':
-            raise Exception("Error: Invalid code - Must end with LOI")
-
-        # Perform lexical analysis
-        final_input = "\n".join(split_code)
-        self.lexical_analyzer.tokenizeInput(final_input)
-
-        # Update symbol table
-        for variable in self.lexical_analyzer.variables:
-            self.symbol_table.add_symbol(
-                variable.get("name"),
-                variable.get("data_type"),
-                variable.get("value")
-            )
-        
-        # Update displays
-        variables = self.symbol_table.get_symbol_table()
-        self.show_variables(variables)
-        self.tokenized_output = self.lexical_analyzer.output
-
-        # Check for lexical errors
-        if self.lexical_analyzer.errors:
-            error_message = "\n".join(self.lexical_analyzer.errors)
-            self.output_label.config(text=f"Lexical Analysis completed with errors:\n{error_message}")
-            return False
-        
-        return True
-
-    except Exception as e:
-        self.output_label.config(text=f"Lexical Analysis failed. {str(e)}")
-        return False
+    # Update tokenized output
+    lexical_output = self.lexical_analyzer.getOutput()
+    for token in lexical_output:
+      for item in lexical_output[token]:
+         self.tokenized_output += f"{item['name']} "
+      self.tokenized_output += "\n"
+    
+    # Check for lexical errors
+    if self.lexical_analyzer.errors:
+      error_message = "\n".join(self.lexical_analyzer.errors)
+      self.output_label.config(text=f"Lexical Analysis completed with errors:\n{error_message}")
+      return False
+    
+    # If no errors, produce .tkn file
+    with open(f"{self.file_directory}/output.tkn", "w") as file:
+      file.write(self.tokenized_output)
+    
+    # If no errors, return True and update output label
+    self.output_label.config(text="Lexical Analysis completed successfully.")
+    return True
   
   # Function to perform syntax analysis on the tokenized code
   def perform_syntax_analysis(self):
@@ -304,10 +314,10 @@ class CompilerApp:
       if not self.perform_lexical_analysis():
           return
           
-      # Phase 2: Syntax Analysis
-      self.output_label.config(text="Performing Syntax Analysis...")
-      if not self.perform_syntax_analysis():
-          return
+      # # Phase 2: Syntax Analysis
+      # self.output_label.config(text="Performing Syntax Analysis...")
+      # if not self.perform_syntax_analysis():
+      #     return
         
       # Phase 3: Semantic Analysis
       # self.output_label.config(text="Performing Semantic Analysis...")
@@ -323,6 +333,7 @@ class CompilerApp:
       current_text = self.code_text.get(1.0, tk.END).strip()
       
       # If text has been modified or not compiled yet
+      print(self.current_input)
       if current_text != self.current_input or not self.tokenized_output:
           messagebox.showwarning("Alert", "Please compile the code first.")
           return
