@@ -203,16 +203,16 @@ class Parser:
     """Returns the parse tree if parsing was successful"""
     return self.parse_tree
 
-# if __name__ == "__main__":
-#   parser = Parser()
-#   parser.getInput('grammar.prod')
-#   parser.getInput('grammar.ptbl')
-#   input_token_file = 'output.tkn'
-#   with open(input_token_file, 'r') as file:
-#     input_tokens = file.read()
-#   parser.parse(input_tokens)
-#   if parser.is_valid:
-#     parse_tree = parser.get_parse_tree()
-#     parse_tree.print_tree()
-#   else:
-#     print(parser.error_message)
+if __name__ == "__main__":
+  parser = Parser()
+  parser.getInput('grammar.prod')
+  parser.getInput('grammar.ptbl')
+  input_token_file = 'output.tkn'
+  with open(input_token_file, 'r') as file:
+    input_tokens = file.read()
+  parser.parse(input_tokens)
+  if parser.is_valid:
+    parse_tree = parser.get_parse_tree()
+    parse_tree.print_tree()
+  else:
+    print(parser.error_message)
