@@ -18,3 +18,8 @@ class SymbolTable:
   
   def get_symbol_table(self):
     return self.symbol_table
+  
+  # Print the symbol table
+  def print_symbol_table(self):
+    for symbol in self.symbol_table:
+      print(f"{symbol}: {self.symbol_table[symbol]}")
