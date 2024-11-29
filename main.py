@@ -87,8 +87,21 @@ class CompilerApp:
     # Output area
     self.output_frame = tk.Frame(self.main_window, bg=self.bg_color, bd=0, relief="flat")
     self.output_frame.place(relx=0.03, rely=0.78, relwidth=0.65, relheight=0.18)
-    self.output_label = tk.Label(self.output_frame, text="Awaiting action...", font=("Consolas", 12), bg=self.frame_color, fg=self.text_color, anchor="nw", padx=10, pady=10)
-    self.output_label.pack(fill="both", expand=True)
+
+    # Create a text widget for output with scrollbars
+    self.output_text = tk.Text(self.output_frame, font=("Consolas", 12), bg=self.frame_color, fg=self.text_color, wrap="none", padx=10, pady=10)
+    self.output_text.pack(side="left", fill="both", expand=True)
+
+    # Vertical scrollbar
+    self.v_scrollbar = tk.Scrollbar(self.output_frame, orient="vertical", command=self.output_text.yview)
+    self.v_scrollbar.pack(side="right", fill="y")
+
+    # Horizontal scrollbar
+    self.h_scrollbar = tk.Scrollbar(self.output_frame, orient="horizontal", command=self.output_text.xview)
+    self.h_scrollbar.pack(side="bottom", fill="x")
+
+    # Configure the text widget to use the scrollbars
+    self.output_text.config(yscrollcommand=self.v_scrollbar.set, xscrollcommand=self.h_scrollbar.set)
 
     # Variables table
     self.variables_frame = tk.Frame(self.main_window, bg=self.bg_color, bd=0)
@@ -116,7 +129,7 @@ class CompilerApp:
     self.code_frame.config(bg=self.bg_color)
     self.code_text.config(bg=self.frame_color, fg=self.text_color, insertbackground=self.text_color)
     self.output_frame.config(bg=self.bg_color)
-    self.output_label.config(bg=self.frame_color, fg=self.text_color)
+    self.output_text.config(bg=self.frame_color, fg=self.text_color)
     self.variables_frame.config(bg=self.bg_color)
     # self.button_container.config(bg=self.bg_color)
 
@@ -124,11 +137,6 @@ class CompilerApp:
     self.style = ttk.Style()
     self.style.configure("Treeview", background=self.frame_color, foreground=self.text_color, fieldbackground=self.frame_color)
     self.style.map("Treeview", background=[('selected', self.button_color)], foreground=[('selected', 'white')])
-
-    # # Button canvas background updates
-    # for widget in self.button_container.winfo_children():
-    #   if isinstance(widget, tk.Canvas):
-    #     widget.config(bg=self.bg_color)
 
   # Function to switch between dark mode and light mode
   def toggle_theme(self):
@@ -162,7 +170,6 @@ class CompilerApp:
   def open_file(self):
     file_path = filedialog.askopenfilename(filetypes=[("Input files", "*.iol")])
     if file_path:
-      # Get the file directory
       self.file_directory = file_path.split("/")
       self.file_directory = "/".join(self.file_directory[:-1])
       
@@ -172,7 +179,8 @@ class CompilerApp:
         self.code_text.insert(tk.END, code_content)
         self.main_window.title(f"LEXICAL ANALYZER - {file_path.split('/')[-1]}")
     
-      self.output_label.config(text="Input .iol file loaded successfully.")
+      self.output_text.delete(1.0, tk.END)
+      self.output_text.insert(tk.END, "Input .iol file loaded successfully.")
   
   # Function to save the current code to a file
   def save_file(self):
@@ -191,34 +199,29 @@ class CompilerApp:
 
   # Function to perform lexical analysis (tokenization) on the code
   def perform_lexical_analysis(self):
-    # Reset output and tree
     self.reset_output_and_tree()
     self.symbol_table.remove_all_symbols()
     self.lexical_analyzer.variables.clear()
 
-    # Get the current code from the text widget
     code = self.code_text.get(1.0, tk.END).strip()
     self.current_input = code
     
-    # Check if code is empty
+    self.output_text.delete(1.0, tk.END)
     if not code:
       messagebox.showwarning("Alert", "Please input or load code for analysis.")
-      self.output_label.config(text="Lexical Analysis failed. No code to analyze.")
+      self.output_text.insert(tk.END, "Lexical Analysis failed. No code to analyze.")
       return False
     
-    # Check if the code is valid: Valid code starts with IOL and ends with LOI (case-sensitive)
     start_code = code.split("\n")[0].strip().split(' ')[0]
     end_code = code.split("\n")[-1].strip().split(' ')[-1] 
     
     if start_code != "IOL" or end_code != "LOI":
       messagebox.showwarning("Alert", "Invalid code. Please ensure that the code starts with IOL and ends with LOI.")
-      self.output_label.config(text="Lexical Analysis failed. Invalid code.")
+      self.output_text.insert(tk.END, "Lexical Analysis failed. Invalid code.")
       return False
     
-    # Perform lexical analysis
     self.lexical_analyzer.tokenizeInput(code)
 
-    # Update symbol table
     for variable in self.lexical_analyzer.variables:
       self.symbol_table.add_symbol(
         variable["name"],
@@ -226,29 +229,24 @@ class CompilerApp:
         variable["value"]
       )
     
-    # Update displays
     variables = self.symbol_table.get_symbol_table()
     self.show_variables(variables)
 
-    # Update tokenized output
     lexical_output = self.lexical_analyzer.getOutput()
     for token in lexical_output:
       for item in lexical_output[token]:
          self.tokenized_output += f"{item['name']} "
       self.tokenized_output += "\n"
     
-    # Check for lexical errors
     if self.lexical_analyzer.errors:
       error_message = "\n".join(self.lexical_analyzer.errors)
-      self.output_label.config(text=f"Lexical Analysis completed with errors:\n{error_message}")
+      self.output_text.insert(tk.END, f"Lexical Analysis completed with errors:\n{error_message}")
       return False
     
-    # If no errors, produce .tkn file
     with open(f"{self.file_directory}/output.tkn", "w") as file:
       file.write(self.tokenized_output)
     
-    # If no errors, return True and update output label
-    self.output_label.config(text="Lexical Analysis completed successfully.")
+    self.output_text.insert(tk.END, "Lexical Analysis completed successfully. \n")
     return True
   
   # Function to perform syntax analysis on the tokenized code
@@ -257,13 +255,13 @@ class CompilerApp:
     self.parser.parse(self.lexical_analyzer.getOutput())
     
     if self.parser.is_valid:
-      self.output_label.config(text="Syntax Analysis completed successfully.")
+      self.output_text.insert(tk.END, "Syntax Analysis completed successfully. \n")
     else:
-      self.output_label.config(text=f"Syntax Analysis completed with errors:\n{self.parser.error_message}")
+      self.output_text.insert(tk.END, f"Syntax Analysis completed with errors:\n{self.parser.error_message}\n")
       
     if self.parser.error_message:
       error_message = "\n".join(self.parser.error_message)
-      self.output_label.config(text=f"Syntax Analysis completed with errors:\n{error_message}")
+      self.output_text.insert(tk.END, f"Syntax Analysis completed with errors:\n{error_message}")
       return False
     
     
@@ -279,35 +277,26 @@ class CompilerApp:
        self.semantic_analyzer.analyze_code(code)
        
        # If no errors, update the output label
-       self.output_label.config(text="Semantic Analysis successful. No errors found.")
+       self.output_text.insert(tk.END, "Semantic Analysis successful. No errors found.")
        return True
    except Exception as e:
-       self.output_label.config(text=f"Semantic Analysis failed: {str(e)}")
+       self.output_text.insert(tk.END, f"Semantic Analysis failed: {str(e)}")
        return False
     
   def compile_code(self):
-      # Reset tokenized output
-      self.tokenized_output = ""
-      self.current_input = self.code_text.get(1.0, tk.END).strip()
-          
-      """Main compilation function that coordinates lexical and syntax analysis."""
-      if not self.current_display_input:
-          return
-          
-      self.output_label.config(text="Starting compilation process...")
-      
-      # Phase 1: Lexical Analysis
-      self.output_label.config(text="Performing Lexical Analysis...")
-      if not self.perform_lexical_analysis():
-          return
-          
-      # Phase 2: Syntax Analysis
-      self.output_label.config(text="Performing Syntax Analysis...")
-      if not self.perform_syntax_analysis():
-          return
-        
-      # If both phases succeed
-      self.output_label.config(text="Compilation successful (Lexical and Syntax analysis complete)")
+    self.tokenized_output = ""
+    self.current_input = self.code_text.get(1.0, tk.END).strip()
+    
+    if not self.current_display_input:
+        return
+    
+    if not self.perform_lexical_analysis():
+        return
+    
+    if not self.perform_syntax_analysis():
+        return
+    
+    self.output_text.insert(tk.END, "Compilation successful (Lexical and Syntax analysis complete)\n")
 
   # Function to perform tokenization based on regex patterns
   def show_tokenized_output(self):
@@ -369,11 +358,11 @@ class CompilerApp:
   # Function for syntax analysis (dummy implementation for now)
   def analyze_syntax(self):
 
-    self.output_label.config(text="Syntax analysis successful. No errors found.")
+    self.output_text.insert(tk.END, "Syntax analysis successful. No errors found.")
 
   # Function to execute the code (placeholder for now)
   def execute_code(self):
-    self.output_label.config(text="This feature is not yet implemented.")
+    self.output_text.insert(tk.END, "This feature is not yet implemented.")
 
   # Function to clear the editor
   def clear_editor(self):
@@ -386,7 +375,7 @@ class CompilerApp:
     self.variables = [] # Reset variables
     self.symbol_table.remove_all_symbols() # Clear the symbol table
     self.show_variables(self.symbol_table.get_symbol_table()) # Clear the treeview widget
-    self.output_label.config(text="Awaiting action...") # Reset the output label
+    self.output_text.insert(tk.END, "Awaiting action...") # Reset the output label
 
 # Main function to run the application
     
