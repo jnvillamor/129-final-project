@@ -196,6 +196,10 @@ class Parser:
     current_symbol = self.stack.pop()
     
     for line in input_tokens:
+      
+      if not self.is_valid:
+        break
+      
       # Add the line to the input buffer
       for token in input_tokens[line]:
         self.input_buffer.append(token)
