@@ -6,7 +6,6 @@ from tkinter import ttk, Menu, filedialog, messagebox
 from lexical_analyzer import LexicalAnalyzer
 from symbol_table import SymbolTable
 from parser import Parser
-from semantic_analyzer import SemanticAnalyzer
 
 class CompilerApp:
   """
@@ -22,8 +21,7 @@ class CompilerApp:
     
     self.symbol_table = SymbolTable()
     self.lexical_analyzer = LexicalAnalyzer()
-    self.parser = Parser()
-    self.semantic_analyzer = SemanticAnalyzer()
+    self.parser = Parser(self.symbol_table)
     # Set up the main window
     self.main_window = tk.Tk()
     self.main_window.title("PE04 - Syntax Analyzer")
@@ -61,7 +59,7 @@ class CompilerApp:
     # Compile Menu
     self.compile_menu = Menu(self.menu, tearoff=0)
     self.compile_menu.add_command(label="Compile Code", command=self.compile_code, accelerator="Ctrl+C")
-    self.compile_menu.add_command(label="Show Tokenized Output", command=self.show_tokenized_output, accelerator="Ctrl+T")
+    self.compile_menu.add_command(label="Show Tokenized Output", command=self.show_tokenized_output, accelerator="Ctrl+J")
     self.menu.add_cascade(label="Compile", menu=self.compile_menu)
 
     # Run Menu
@@ -77,7 +75,7 @@ class CompilerApp:
     self.main_window.bind("<Control-s>", lambda event: self.save_file())
     self.main_window.bind("<Control-S>", lambda event: self.save_file_as())
     self.main_window.bind("<Control-c>", lambda event: self.compile_code())
-    self.main_window.bind("<Control-t>", lambda event: self.show_tokenized_output())
+    self.main_window.bind("<Control-j>", lambda event: self.show_tokenized_output())
     self.main_window.bind("<Control-e>", lambda event: self.execute_code())
 
     # Code display area
@@ -103,11 +101,6 @@ class CompilerApp:
     self.tree.column("Type", anchor="center", width=80)
     # tree.column("Value", anchor="center", width=80)
     self.tree.pack(fill="both", expand=True)
-
-    # Tokenized button
-    # self.button_container = tk.Frame(self.main_window, bg=self.bg_color, bd=0)
-    # self.button_container.place(relx=0.7, rely=0.78, relwidth=0.27, relheight=0.18)
-    # self.tokenized_button = self.generate_rounded_button(self.button_container, "Show Tokenized Output", self.show_tokenized_output)
 
   def run(self):
     self.apply_theme()
@@ -260,32 +253,22 @@ class CompilerApp:
   
   # Function to perform syntax analysis on the tokenized code
   def perform_syntax_analysis(self):
-    try:
-        # Load production and parse tables
-        prod_status = self.parser.getInput("grammar.prod")
-        if prod_status[0] == "Error":
-            raise Exception("Failed to load production rules")
-            
-        parse_status = self.parser.getInput("grammar.ptbl")
-        if parse_status[0] == "Error":
-            raise Exception("Failed to load parse table")
-        
-        # Get the tokenized code
-        print(self.tokenized_output)
-        tokenized_code = self.tokenized_output
-        is_valid, error_message, parse_output = self.parser.parse(tokenized_code)
-
-        # Output if the parse is valid or not
-        if is_valid:
-          self.output_label.config(text="Syntax Analysis successful. No errors found.")
-        else:
-          self.output_label.config(text=f"Syntax Analysis failed:\n{error_message}")
-          return False
-        
-    except Exception as e:
-        self.output_label.config(text=f"Syntax Analysis failed: {str(e)}")
-        return False
-  
+    # Parse the tokenized code
+    self.parser.parse(self.lexical_analyzer.getOutput())
+    
+    if self.parser.is_valid:
+      self.output_label.config(text="Syntax Analysis completed successfully.")
+    else:
+      self.output_label.config(text=f"Syntax Analysis completed with errors:\n{self.parser.error_message}")
+      
+    if self.parser.error_message:
+      error_message = "\n".join(self.parser.error_message)
+      self.output_label.config(text=f"Syntax Analysis completed with errors:\n{error_message}")
+      return False
+    
+    
+    return self.parser.is_valid
+    
   # Function to perform semantic analysis on the tokenized code
   def perform_semantic_analysis(self):
    try:
@@ -303,6 +286,10 @@ class CompilerApp:
        return False
     
   def compile_code(self):
+      # Reset tokenized output
+      self.tokenized_output = ""
+      self.current_input = self.code_text.get(1.0, tk.END).strip()
+          
       """Main compilation function that coordinates lexical and syntax analysis."""
       if not self.current_display_input:
           return
@@ -314,16 +301,11 @@ class CompilerApp:
       if not self.perform_lexical_analysis():
           return
           
-      # # Phase 2: Syntax Analysis
-      # self.output_label.config(text="Performing Syntax Analysis...")
-      # if not self.perform_syntax_analysis():
-      #     return
+      # Phase 2: Syntax Analysis
+      self.output_label.config(text="Performing Syntax Analysis...")
+      if not self.perform_syntax_analysis():
+          return
         
-      # Phase 3: Semantic Analysis
-      # self.output_label.config(text="Performing Semantic Analysis...")
-      # if not self.perform_semantic_analysis():
-      #     return
-          
       # If both phases succeed
       self.output_label.config(text="Compilation successful (Lexical and Syntax analysis complete)")
 
@@ -331,9 +313,9 @@ class CompilerApp:
   def show_tokenized_output(self):
       # Get current text from code display area
       current_text = self.code_text.get(1.0, tk.END).strip()
+      print("hi")
       
       # If text has been modified or not compiled yet
-      print(self.current_input)
       if current_text != self.current_input or not self.tokenized_output:
           messagebox.showwarning("Alert", "Please compile the code first.")
           return
@@ -386,11 +368,12 @@ class CompilerApp:
 
   # Function for syntax analysis (dummy implementation for now)
   def analyze_syntax(self):
+
     self.output_label.config(text="Syntax analysis successful. No errors found.")
 
   # Function to execute the code (placeholder for now)
   def execute_code(self):
-    self.output_label.config(text="Executing code... (Output will be shown here)")
+    self.output_label.config(text="This feature is not yet implemented.")
 
   # Function to clear the editor
   def clear_editor(self):
