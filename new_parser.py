@@ -19,10 +19,14 @@ class Parser:
     self.is_valid = bool
     self.error_message = []
 
+    # Flags for variable semantic checks
     self.is_variable_declaration = False
     self.current_data_type = None
     self.current_identifier = None
     self.is_waiting_for_value = False
+
+    # Flags for assignment semantic checks
+    self.is_assignment = False
 
     self._getProdTable()
     self._getParseTable()
@@ -77,6 +81,30 @@ class Parser:
         return ind
   
   def _handleVariableDeclaration(self, current_input: dict, current_symbol: str, line: int):
+    """
+      Handle semantic checks for variable declarations in the parsing process.
+      
+      This function manages the state of variable declarations by tracking:
+      - Whether we're currently processing a variable declaration
+      - The current data type being declared (INT or STR)
+      - The identifier being declared
+      - Whether we're waiting for a value assignment
+      
+      It performs type checking to ensure:
+      - Variables are declared with valid data types (INT or STR)
+      - Assigned values match the declared type
+      - When assigning from another variable, types are compatible
+      
+      Args:
+          current_input (dict): Dictionary containing the current token information
+          current_symbol (str): The current symbol being processed
+          line (int): The current line number in the source code
+          
+      Side Effects:
+          - Updates internal state flags for declaration processing
+          - Adds error messages to self.error_message for type mismatches
+          - Updates symbol table entries via self.symbol_table
+    """
     if current_symbol in ["INT", "STR"]:
       print("Variable Declaration Flag Set")
       self.is_variable_declaration = True
@@ -93,11 +121,10 @@ class Parser:
 
     elif self.is_variable_declaration and self.is_waiting_for_value:
       # Check value type matches declaration
-      if current_symbol in ["INT_LIT", "STR_LIT"]:
-        expected_type = "INT_LIT" if self.current_data_type == "INT" else "STR_LIT"
-        if current_symbol != expected_type:
-          self.error_message.append(f'Error at line {line}: Type mismatch - Variable {self.current_identifier} declared as {self.current_data_type} but assigned {self.symbol_table.get_symbol(current_input["value"])["type"]}')
-      
+      if current_symbol == "INT_LIT":
+        if self.current_data_type != "INT":
+          self.error_message.append(f'Error at line {line}: Type mismatch - Variable {self.current_identifier} declared as {self.current_data_type} but assigned {current_input["value"]}')
+
       elif current_symbol == "IDENT":
         # Check if the identifier has the same data type as the declaration
         if self.symbol_table.get_symbol(current_input["value"])["type"] != self.current_data_type:
@@ -109,6 +136,54 @@ class Parser:
       self.is_waiting_for_value = False
       self.current_data_type = None
       self.current_identifier = None
+    
+    else:
+      # If we're not waiting for a value, reset the flags
+      self.is_variable_declaration = False
+      self.is_waiting_for_value = False
+      self.current_data_type = None
+      self.current_identifier = None
+
+  def _handleAssignment(self, current_input: dict, current_symbol: str, line: int):
+    """
+    Handle semantic checks for assignment statements (INTO identifier IS expression).
+    Ensures type compatibility between the identifier and the assigned expression.
+    """
+    if current_symbol == "INTO":
+      self.is_assignment = True
+      self.current_identifier = None
+      self.is_waiting_for_value = False
+    
+    elif current_symbol == "IDENT" and self.current_identifier is None:
+      # Store the identifier being assigned to
+      self.current_identifier = current_input["value"]
+      # Get its type from symbol table
+      self.current_data_type = self.symbol_table.get_symbol(current_input["value"])["type"]
+    
+    elif current_symbol == "IS":
+      self.is_waiting_for_value = True
+    
+    elif self.is_waiting_for_value:
+      if current_symbol == "INT_LIT":
+        if self.current_data_type != "INT":
+          self.error_message.append(f'Error at line {line}: Type mismatch in assignment - Variable {self.current_identifier} is {self.current_data_type} but assigned {current_input["value"]}')
+      
+      elif current_symbol == "IDENT":
+        if self.symbol_table.get_symbol(current_input["value"])["type"] != self.current_data_type:
+          self.error_message.append(f'Error at line {line}: Type mismatch in assignment - Variable {self.current_identifier} is {self.current_data_type} but assigned {current_input["value"]}')
+      
+      # Reset flags
+      self.is_assignment = False
+      self.current_identifier = None
+      self.current_data_type = None
+      self.is_waiting_for_value = False
+    
+    else:
+      # If we're not waiting for a value, reset the flags
+      self.is_assignment = False
+      self.current_identifier = None
+      self.current_data_type = None
+      self.is_waiting_for_value = False
 
   def parse(self, input_tokens: list[dict]):
     """
@@ -130,9 +205,13 @@ class Parser:
         print(f"\nCurrent Symbol: {current_symbol} | Current Input: {current_input}")
 
         if(current_symbol == current_input["name"]):
-          # Add semantic checks for variable declarations
+          # Add semantic checks for variable declarations and assignments
           if self.is_variable_declaration or current_symbol in ["INT", "STR"]:
+            print("Running semantic checks for variable declaration")
             self._handleVariableDeclaration(current_input, current_symbol, line)
+          elif self.is_assignment or current_symbol == "INTO":
+            print("Running semantic checks for assignment")
+            self._handleAssignment(current_input, current_symbol, line)
 
           print("Match")
           self.input_buffer.pop(0)
@@ -163,6 +242,14 @@ class Parser:
           for symbol in production_symbols[::-1]:
             if symbol != 'e':
               self.stack.append(symbol)
+            else:
+              print("e production")
+              # If DataType IDENT is completed, reset flags
+              if self.is_variable_declaration and self.current_identifier is not None:
+                self.is_variable_declaration = False
+                self.current_identifier = None
+                self.is_waiting_for_value = False
+                self.current_data_type = None
 
           print(f'Output {current_symbol} > {production}')
           current_symbol = self.stack.pop()
