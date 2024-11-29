@@ -76,6 +76,40 @@ class Parser:
       if X == symbol:
         return ind
   
+  def _handleVariableDeclaration(self, current_input: dict, current_symbol: str, line: int):
+    if current_symbol in ["INT", "STR"]:
+      print("Variable Declaration Flag Set")
+      self.is_variable_declaration = True
+      self.current_data_type = current_symbol
+
+    elif self.is_variable_declaration and not self.is_waiting_for_value and current_symbol == "IDENT":
+      print("Identifier Set")
+      self.current_identifier = current_input["value"]
+
+    elif self.is_variable_declaration and not self.is_waiting_for_value and current_symbol == "IS":
+      # Keep the flag on, waiting for value
+      self.is_waiting_for_value = True
+      print("Waiting for value")
+
+    elif self.is_variable_declaration and self.is_waiting_for_value:
+      # Check value type matches declaration
+      if current_symbol in ["INT_LIT", "STR_LIT"]:
+        expected_type = "INT_LIT" if self.current_data_type == "INT" else "STR_LIT"
+        if current_symbol != expected_type:
+          self.error_message.append(f'Error at line {line}: Type mismatch - Variable {self.current_identifier} declared as {self.current_data_type} but assigned {self.symbol_table.get_symbol(current_input["value"])["type"]}')
+      
+      elif current_symbol == "IDENT":
+        # Check if the identifier has the same data type as the declaration
+        if self.symbol_table.get_symbol(current_input["value"])["type"] != self.current_data_type:
+          self.error_message.append(f'Error at line {line}: Type mismatch - Variable {self.current_identifier} declared as {self.current_data_type} but assigned {self.symbol_table.get_symbol(current_input["value"])["type"]}')
+      
+      # Reset flags after processing the declaration
+      print("Resetting flags")
+      self.is_variable_declaration = False
+      self.is_waiting_for_value = False
+      self.current_data_type = None
+      self.current_identifier = None
+
   def parse(self, input_tokens: list[dict]):
     """
       Parse the input tokens using the production and parse tables.
@@ -97,33 +131,8 @@ class Parser:
 
         if(current_symbol == current_input["name"]):
           # Add semantic checks for variable declarations
-          if current_symbol in ["INT", "STR"]:
-            print("Variable Declaration Flag Set")
-            self.is_variable_declaration = True
-            self.current_data_type = current_symbol
-          elif self.is_variable_declaration and not self.is_waiting_for_value and current_symbol == "IDENT":
-            print("Identifier Set")
-            self.current_identifier = current_input["value"]
-          elif self.is_variable_declaration and not self.is_waiting_for_value and current_symbol == "IS":
-            # Keep the flag on, waiting for value
-            self.is_waiting_for_value = True
-            print("Waiting for value")
-          elif self.is_variable_declaration and self.is_waiting_for_value:
-            # Check value type matches declaration
-            if current_symbol in ["INT_LIT", "STR_LIT"]:
-              expected_type = "INT_LIT" if self.current_data_type == "INT" else "STR_LIT"
-              if current_symbol != expected_type:
-                self.error_message.append(f'Error at line {line}: Type mismatch - Variable {self.current_identifier} declared as {self.current_data_type} but assigned {self.symbol_table.get_symbol(current_input["value"])["type"]}')
-            elif current_symbol == "IDENT":
-              # Check if the identifier has the same data type as the declaration
-              if self.symbol_table.get_symbol(current_input["value"])["type"] != self.current_data_type:
-                self.error_message.append(f'Error at line {line}: Type mismatch - Variable {self.current_identifier} declared as {self.current_data_type} but assigned {self.symbol_table.get_symbol(current_input["value"])["type"]}')
-            # Reset flags after processing the declaration
-            print("Resetting flags")
-            self.is_variable_declaration = False
-            self.is_waiting_for_value = False
-            self.current_data_type = None
-            self.current_identifier = None
+          if self.is_variable_declaration or current_symbol in ["INT", "STR"]:
+            self._handleVariableDeclaration(current_input, current_symbol, line)
 
           print("Match")
           self.input_buffer.pop(0)
