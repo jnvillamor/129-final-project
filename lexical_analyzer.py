@@ -45,13 +45,13 @@ class LexicalAnalyzer:
       Tokenizes a single word.
       @param word: The word to be tokenized.
     """
-    if self._isValidKeyword(word):
+    if self._isValidKeyword(word): # If the word is a keyword, return KEYWORD
       return "KEYWORD"
-    elif self._isValidIdentifier(word):
+    elif self._isValidIdentifier(word): # If the word is an identifier, return IDENT
       return "IDENT"
-    elif self._isValidInteger(word):
+    elif self._isValidInteger(word): # If the word is an integer literal, return INT_LIT
       return "INT_LIT"
-    else:
+    else: # If the word is invalid, return ERROR
       return "ERROR"
 
   def _getDataType(self, previous_token: str):
@@ -70,12 +70,14 @@ class LexicalAnalyzer:
     # Split the input into lines
     input = input.strip().split("\n")
 
+    # Tokenize each line of the input
     for index, line in enumerate(input):
       split_line = line.strip().split(' ')
       tokens = Tokens()
 
       previous_token = ""
 
+      # Tokenize each word in the line
       for word in split_line:
         # Ignore whitespace
         if word == "": continue
@@ -83,31 +85,33 @@ class LexicalAnalyzer:
         word = word.strip()
         
         token_type = self._tokenizeWord(word)
-        if token_type == "KEYWORD":
+        if token_type == "KEYWORD": # If the word is a keyword, add it to the tokens
           tokens.add_token(word)
 
-        elif token_type == "IDENT":
+        elif token_type == "IDENT": # If the word is an identifier, add it to the variables list
           data_type = self._getDataType(previous_token)
           flag = False
 
-          for variable in self.variables:
-            if variable["name"] == word:
+          for variable in self.variables: # Check if the variable is already in the variables list
+            if variable["name"] == word: 
               flag = True
               break
 
-          if not flag:
+          if not flag: # If the variable is not already in the variables list, add it
             self.variables.append({"name": word, "data_type": data_type, "value": 0 if data_type == "INT" else ""})
 
           tokens.add_token("IDENT", word)
 
-        elif token_type == "INT_LIT":
+        elif token_type == "INT_LIT": # If the word is an integer literal, add it to the tokens
           tokens.add_token("INT_LIT", word)
 
-        else:
+        else: # If the word is invalid, add it to the errors list
           tokens.add_token("ERROR", word)
           self.errors.append(f"Error on line {index + 1} | Invalid word: {word}")
         
         previous_token = word
+      
+      # Add the tokens to the output dictionary
       self.output[index + 1] = tokens.get_tokens()
 
   def getVariables(self):
@@ -121,23 +125,3 @@ class LexicalAnalyzer:
       Gets the output from the output dictionary.
     """
     return self.output
-
-if __name__ == "__main__":
-  lexical_analyzer = LexicalAnalyzer()
-  lexical_analyzer.tokenizeInput("""
-IOL
-  INT num IS 0 INT res IS 0
-  STR msg1 STR msg2 STR msg3
-  BEG msg1 BEG msg2
-  BEG msg3
-  NEWLN PRINT msg1
-  NEWLN
-  INTO res IS MULT num num
-  PRINT msg2
-  PRINT MULT num 2 
-  NEWLN
-  PRINT msg3
-  PRINT res
-LOI
-""")
-  
