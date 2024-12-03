@@ -24,7 +24,7 @@ class CompilerApp:
     self.parser = Parser(self.symbol_table)
     # Set up the main window
     self.main_window = tk.Tk()
-    self.main_window.title("PE04 - Syntax Analyzer")
+    self.main_window.title("CMSC 129 - Integer-Oriented Language IDE")
     self.main_window.geometry("900x600")
     
     # Set initial theme to dark mode
@@ -32,18 +32,6 @@ class CompilerApp:
     self.text_color = "#ffffff"
     self.button_color = "#0082C8"
     self.frame_color = "#3a3a3a"
-
-    # Header Frame
-    self.header_frame = tk.Frame(self.main_window, bg=self.bg_color)
-    self.header_frame.pack(fill="x", pady=5)
-
-    # Header Label
-    self.header_label = tk.Label(self.header_frame, text="PE04 - Syntax Analyzer", font=("Arial", 16, "bold"), bg=self.bg_color, fg=self.text_color)
-    self.header_label.pack(side="left", padx=20)
-
-    # Toggle Button for Light/Dark mode
-    self.toggle_button = tk.Button(self.header_frame, text="🌙" if self.is_dark_mode else "☀️", command=self.toggle_theme, bg=self.button_color, fg="white", font=("Arial", 12), relief="flat")
-    self.toggle_button.pack(side="right", padx=20)
 
     # Menu bar
     self.menu = Menu(self.main_window)
@@ -59,13 +47,19 @@ class CompilerApp:
     # Compile Menu
     self.compile_menu = Menu(self.menu, tearoff=0)
     self.compile_menu.add_command(label="Compile Code", command=self.compile_code, accelerator="Ctrl+C")
-    self.compile_menu.add_command(label="Show Tokenized Output", command=self.show_tokenized_output, accelerator="Ctrl+J")
     self.menu.add_cascade(label="Compile", menu=self.compile_menu)
 
     # Run Menu
     self.run_menu = Menu(self.menu, tearoff=0)
     self.run_menu.add_command(label="Execute Code", command=self.execute_code, accelerator="Ctrl+E")
     self.menu.add_cascade(label="Run", menu=self.run_menu)
+    
+    # View Menu
+    self.view_menu = Menu(self.menu, tearoff=0)
+    self.view_menu.add_command(label="Show Tokenized Code", command=self.show_tokenized_output, accelerator="Ctrl+J")
+    self.view_menu.add_command(label="Toggle Theme", command=self.toggle_theme, accelerator="Ctrl+D")
+    self.menu.add_cascade(label="View", menu=self.view_menu)
+
 
     self.main_window.config(menu=self.menu)
 
@@ -77,6 +71,7 @@ class CompilerApp:
     self.main_window.bind("<Control-c>", lambda event: self.compile_code())
     self.main_window.bind("<Control-j>", lambda event: self.show_tokenized_output())
     self.main_window.bind("<Control-e>", lambda event: self.execute_code())
+    self.main_window.bind("<Control-d>", lambda event: self.toggle_theme())
 
     # Code display area
     self.code_frame = tk.Frame(self.main_window, bg=self.bg_color, bd=0)
@@ -85,23 +80,12 @@ class CompilerApp:
     self.code_text.pack(fill="both", expand=True)
 
     # Output area
-    self.output_frame = tk.Frame(self.main_window, bg=self.bg_color, bd=0, relief="flat")
-    self.output_frame.place(relx=0.03, rely=0.78, relwidth=0.65, relheight=0.18)
+    self.console_frame = tk.Frame(self.main_window, bg=self.bg_color, bd=0, relief="flat")
+    self.console_frame.place(relx=0.03, rely=0.78, relwidth=0.94, relheight=0.18)
 
     # Create a text widget for output with scrollbars
-    self.output_text = tk.Text(self.output_frame, font=("Consolas", 12), bg=self.frame_color, fg=self.text_color, wrap="none", padx=10, pady=10)
-    self.output_text.pack(side="left", fill="both", expand=True)
-
-    # Vertical scrollbar
-    self.v_scrollbar = tk.Scrollbar(self.output_frame, orient="vertical", command=self.output_text.yview)
-    self.v_scrollbar.pack(side="right", fill="y")
-
-    # Horizontal scrollbar
-    self.h_scrollbar = tk.Scrollbar(self.output_frame, orient="horizontal", command=self.output_text.xview)
-    self.h_scrollbar.pack(side="bottom", fill="x")
-
-    # Configure the text widget to use the scrollbars
-    self.output_text.config(yscrollcommand=self.v_scrollbar.set, xscrollcommand=self.h_scrollbar.set)
+    self.console_text = tk.Text(self.console_frame, font=("Consolas", 12), bg=self.frame_color, fg=self.text_color, wrap="word", padx=10, pady=10)
+    self.console_text.pack(side="left", fill="both", expand=True)
 
     # Variables table
     self.variables_frame = tk.Frame(self.main_window, bg=self.bg_color, bd=0)
@@ -124,12 +108,10 @@ class CompilerApp:
   # Function to apply theme changes
   def apply_theme(self):
     self.main_window.config(bg=self.bg_color)
-    self.header_frame.config(bg=self.bg_color)
-    self.header_label.config(bg=self.bg_color, fg=self.text_color)
     self.code_frame.config(bg=self.bg_color)
     self.code_text.config(bg=self.frame_color, fg=self.text_color, insertbackground=self.text_color)
-    self.output_frame.config(bg=self.bg_color)
-    self.output_text.config(bg=self.frame_color, fg=self.text_color)
+    self.console_frame.config(bg=self.bg_color)
+    self.console_text.config(bg=self.frame_color, fg=self.text_color)
     self.variables_frame.config(bg=self.bg_color)
     # self.button_container.config(bg=self.bg_color)
 
@@ -177,10 +159,10 @@ class CompilerApp:
         code_content = file.read()
         self.code_text.delete(1.0, tk.END)
         self.code_text.insert(tk.END, code_content)
-        self.main_window.title(f"LEXICAL ANALYZER - {file_path.split('/')[-1]}")
+        self.main_window.title(f"Syntax Analyzer - {file_path.split('/')[-1]}")
     
-      self.output_text.delete(1.0, tk.END)
-      self.output_text.insert(tk.END, "Input .iol file loaded successfully.")
+      self.console_text.delete(1.0, tk.END)
+      self.console_text.insert(tk.END, "Input .iol file loaded successfully.")
   
   # Function to save the current code to a file
   def save_file(self):
@@ -195,7 +177,7 @@ class CompilerApp:
     if file_path:
       with open(file_path, 'w') as file:
         file.write(self.code_text.get(1.0, tk.END))
-        self.main_window.title(f"LEXICAL ANALYZER - {file_path.split('/')[-1]}")
+        self.main_window.title(f"Syntax Analyzer - {file_path.split('/')[-1]}")
 
   # Function to perform lexical analysis (tokenization) on the code
   def perform_lexical_analysis(self):
@@ -206,10 +188,10 @@ class CompilerApp:
     code = self.code_text.get(1.0, tk.END).strip()
     self.current_input = code
     
-    self.output_text.delete(1.0, tk.END)
+    self.console_text.delete(1.0, tk.END)
     if not code:
       messagebox.showwarning("Alert", "Please input or load code for analysis.")
-      self.output_text.insert(tk.END, "Lexical Analysis failed. No code to analyze.")
+      self.console_text.insert(tk.END, "Lexical Analysis failed. No code to analyze.")
       return False
     
     start_code = code.split("\n")[0].strip().split(' ')[0]
@@ -217,7 +199,7 @@ class CompilerApp:
     
     if start_code != "IOL" or end_code != "LOI":
       messagebox.showwarning("Alert", "Invalid code. Please ensure that the code starts with IOL and ends with LOI.")
-      self.output_text.insert(tk.END, "Lexical Analysis failed. Invalid code.")
+      self.console_text.insert(tk.END, "Lexical Analysis failed. Invalid code.")
       return False
     
     self.lexical_analyzer.tokenizeInput(code)
@@ -240,13 +222,13 @@ class CompilerApp:
     
     if self.lexical_analyzer.errors:
       error_message = "\n".join(self.lexical_analyzer.errors)
-      self.output_text.insert(tk.END, f"Lexical Analysis completed with errors:\n{error_message}")
+      self.console_text.insert(tk.END, f"Lexical Analysis completed with errors:\n{error_message}")
       return False
     
     with open(f"{self.file_directory}/output.tkn", "w") as file:
       file.write(self.tokenized_output)
     
-    self.output_text.insert(tk.END, "Lexical Analysis completed successfully. \n")
+    # self.console_text.insert(tk.END, "Lexical Analysis completed successfully. \n")
     return True
   
   # Function to perform syntax analysis on the tokenized code
@@ -255,13 +237,14 @@ class CompilerApp:
     self.parser.parse(self.lexical_analyzer.getOutput())
     
     if self.parser.is_valid:
-      self.output_text.insert(tk.END, "Syntax Analysis completed successfully. \n")
+      # self.console_text.insert(tk.END, "Syntax Analysis completed successfully. \n")
+      return True
     else:
-      self.output_text.insert(tk.END, f"Syntax Analysis completed with errors:\n{self.parser.error_message}\n")
+      self.console_text.insert(tk.END, f"Syntax Analysis completed with errors:\n{self.parser.error_message}\n")
       
     if self.parser.error_message:
       error_message = "\n".join(self.parser.error_message)
-      self.output_text.insert(tk.END, f"Syntax Analysis completed with errors:\n{error_message}")
+      self.console_text.insert(tk.END, f"Syntax Analysis completed with errors:\n{error_message}")
       return False
     
     
@@ -277,10 +260,10 @@ class CompilerApp:
        self.semantic_analyzer.analyze_code(code)
        
        # If no errors, update the output label
-       self.output_text.insert(tk.END, "Semantic Analysis successful. No errors found.")
+       self.console_text.insert(tk.END, "Semantic Analysis successful. No errors found.")
        return True
    except Exception as e:
-       self.output_text.insert(tk.END, f"Semantic Analysis failed: {str(e)}")
+       self.console_text.insert(tk.END, f"Semantic Analysis failed: {str(e)}")
        return False
     
   def compile_code(self):
@@ -296,7 +279,7 @@ class CompilerApp:
     if not self.perform_syntax_analysis():
         return
     
-    self.output_text.insert(tk.END, "Compilation successful (Lexical and Syntax analysis complete)\n")
+    self.console_text.insert(tk.END, "Code compiled with no errors found. Program will now be executed...\n\n")
 
   # Function to perform tokenization based on regex patterns
   def show_tokenized_output(self):
@@ -358,16 +341,19 @@ class CompilerApp:
   # Function for syntax analysis (dummy implementation for now)
   def analyze_syntax(self):
 
-    self.output_text.insert(tk.END, "Syntax analysis successful. No errors found.")
+    self.console_text.insert(tk.END, "Syntax analysis successful. No errors found.")
 
   # Function to execute the code (placeholder for now)
   def execute_code(self):
-    self.output_text.insert(tk.END, "This feature is not yet implemented.")
+    self.console_text.insert(tk.END, "\n\nThis feature is not yet implemented.")
 
   # Function to clear the editor
   def clear_editor(self):
     self.code_text.delete(1.0, tk.END)
     self.reset_output_and_tree()
+    self.console_text.delete(1.0, tk.END)
+    self.console_text.insert(tk.END, "Awaiting action...") # Reset the output label
+    
 
   # Function to reset the output label and variable table
   def reset_output_and_tree(self):
@@ -375,7 +361,7 @@ class CompilerApp:
     self.variables = [] # Reset variables
     self.symbol_table.remove_all_symbols() # Clear the symbol table
     self.show_variables(self.symbol_table.get_symbol_table()) # Clear the treeview widget
-    self.output_text.insert(tk.END, "Awaiting action...") # Reset the output label
+    self.console_text.insert(tk.END, "Awaiting action...") # Reset the output label
 
 # Main function to run the application
     
