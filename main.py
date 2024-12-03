@@ -6,6 +6,7 @@ from tkinter import ttk, Menu, filedialog, messagebox
 from lexical_analyzer import LexicalAnalyzer
 from symbol_table import SymbolTable
 from parser import Parser
+from runtime import Runtime
 
 class CompilerApp:
   """
@@ -22,6 +23,7 @@ class CompilerApp:
     self.symbol_table = SymbolTable()
     self.lexical_analyzer = LexicalAnalyzer()
     self.parser = Parser(self.symbol_table)
+    
     # Set up the main window
     self.main_window = tk.Tk()
     self.main_window.title("CMSC 129 - Integer-Oriented Language IDE")
@@ -32,6 +34,14 @@ class CompilerApp:
     self.text_color = "#ffffff"
     self.button_color = "#0082C8"
     self.frame_color = "#3a3a3a"
+    
+    # Header Frame
+    self.header_frame = tk.Frame(self.main_window, bg=self.bg_color)
+    self.header_frame.pack(fill="x", pady=5)
+    
+    # Header Label
+    self.header_label = tk.Label(self.header_frame, text="Integer-Oriented Language IDE", font=("Arial", 16, "bold"), bg=self.bg_color, fg=self.text_color)
+    self.header_label.pack(side="left", padx=20)
 
     # Menu bar
     self.menu = Menu(self.main_window)
@@ -60,7 +70,6 @@ class CompilerApp:
     self.view_menu.add_command(label="Toggle Theme", command=self.toggle_theme, accelerator="Ctrl+D")
     self.menu.add_cascade(label="View", menu=self.view_menu)
 
-
     self.main_window.config(menu=self.menu)
 
     # Bind keyboard shortcuts
@@ -85,6 +94,7 @@ class CompilerApp:
 
     # Create a text widget for output with scrollbars
     self.console_text = tk.Text(self.console_frame, font=("Consolas", 12), bg=self.frame_color, fg=self.text_color, wrap="word", padx=10, pady=10)
+    self.console_text.insert(tk.END, "Awaiting action...")
     self.console_text.pack(side="left", fill="both", expand=True)
 
     # Variables table
@@ -93,11 +103,12 @@ class CompilerApp:
     self.tree = ttk.Treeview(self.variables_frame, columns=("Variable", "Type"), show="headings")
     self.tree.heading("Variable", text="Variable")
     self.tree.heading("Type", text="Type")
-    # tree.heading("Value", text="Value")
     self.tree.column("Variable", anchor="center", width=80)
     self.tree.column("Type", anchor="center", width=80)
-    # tree.column("Value", anchor="center", width=80)
     self.tree.pack(fill="both", expand=True)
+
+    # Initialize Runtime after code_text and console_text are created
+    self.runtime = Runtime(self.code_text, self.console_text, self.symbol_table)
 
   def run(self):
     self.apply_theme()
@@ -222,7 +233,7 @@ class CompilerApp:
     
     if self.lexical_analyzer.errors:
       error_message = "\n".join(self.lexical_analyzer.errors)
-      self.console_text.insert(tk.END, f"Lexical Analysis completed with errors:\n{error_message}")
+      self.console_text.insert(tk.END, f"Compilation completed. Lexical errors found:\n{error_message}")
       return False
     
     with open(f"{self.file_directory}/output.tkn", "w") as file:
@@ -240,11 +251,11 @@ class CompilerApp:
       # self.console_text.insert(tk.END, "Syntax Analysis completed successfully. \n")
       return True
     else:
-      self.console_text.insert(tk.END, f"Syntax Analysis completed with errors:\n{self.parser.error_message}\n")
+      self.console_text.insert(tk.END, f"Compilation completed. Syntax errors found:\n{self.parser.error_message}\n")
       
     if self.parser.error_message:
       error_message = "\n".join(self.parser.error_message)
-      self.console_text.insert(tk.END, f"Syntax Analysis completed with errors:\n{error_message}")
+      self.console_text.insert(tk.END, f"Compilation completed. Syntax errors found:\n{error_message}")
       return False
     
     
@@ -280,12 +291,15 @@ class CompilerApp:
         return
     
     self.console_text.insert(tk.END, "Code compiled with no errors found. Program will now be executed...\n\n")
+    
+  def execute_code(self):
+    self.console_text.insert(tk.END, "=== IOL Execution ===\n")
+    self.runtime.process_input_code()
 
   # Function to perform tokenization based on regex patterns
   def show_tokenized_output(self):
       # Get current text from code display area
       current_text = self.code_text.get(1.0, tk.END).strip()
-      print("hi")
       
       # If text has been modified or not compiled yet
       if current_text != self.current_input or not self.tokenized_output:
@@ -337,15 +351,6 @@ class CompilerApp:
         
         # Insert values into the treeview
         self.tree.insert('', 'end', values=(variable, var_type, var_value))
-
-  # Function for syntax analysis (dummy implementation for now)
-  def analyze_syntax(self):
-
-    self.console_text.insert(tk.END, "Syntax analysis successful. No errors found.")
-
-  # Function to execute the code (placeholder for now)
-  def execute_code(self):
-    self.console_text.insert(tk.END, "\n\nThis feature is not yet implemented.")
 
   # Function to clear the editor
   def clear_editor(self):
