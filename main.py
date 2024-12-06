@@ -96,6 +96,7 @@ class CompilerApp:
     self.console_text = tk.Text(self.console_frame, font=("Consolas", 12), bg=self.frame_color, fg=self.text_color, wrap="word", padx=10, pady=10)
     self.console_text.insert(tk.END, "Awaiting action...")
     self.console_text.pack(side="left", fill="both", expand=True)
+    self.console_text.config(state=tk.DISABLED)
 
     # Variables table
     self.variables_frame = tk.Frame(self.main_window, bg=self.bg_color, bd=0)
@@ -109,7 +110,19 @@ class CompilerApp:
 
     # Initialize Runtime after code_text and console_text are created
     self.runtime = Runtime(self.code_text, self.console_text, self.symbol_table)
-
+  
+  def update_console_text(self, text: str, operation: str = "insert"):
+    # if the operation is insert, enable the text widget, append the text, and disable it again
+    if operation == "insert":
+      self.console_text.config(state=tk.NORMAL)
+      self.console_text.insert(tk.END, text)
+      self.console_text.config(state=tk.DISABLED)
+    else:
+      self.console_text.config(state=tk.NORMAL)
+      self.console_text.delete(1.0, tk.END)
+      self.console_text.insert(tk.END, text)
+      self.console_text.config(state=tk.DISABLED)
+      
   def run(self):
     self.apply_theme()
     
@@ -172,8 +185,7 @@ class CompilerApp:
         self.code_text.insert(tk.END, code_content)
         self.main_window.title(f"Syntax Analyzer - {file_path.split('/')[-1]}")
     
-      self.console_text.delete(1.0, tk.END)
-      self.console_text.insert(tk.END, "Input .iol file loaded successfully.")
+      self.update_console_text("Input .iol file loaded successfully.", "overwrite")
   
   # Function to save the current code to a file
   def save_file(self):
@@ -199,10 +211,10 @@ class CompilerApp:
     code = self.code_text.get(1.0, tk.END).strip()
     self.current_input = code
     
-    self.console_text.delete(1.0, tk.END)
+    self.update_console_text("Input .iol file loaded successfully.", "overwrite")
     if not code:
       messagebox.showwarning("Alert", "Please input or load code for analysis.")
-      self.console_text.insert(tk.END, "Lexical Analysis failed. No code to analyze.")
+      self.update_console_text("Lexical Analysis failed. No code to analyze.", "overwrite")
       return False
     
     start_code = code.split("\n")[0].strip().split(' ')[0]
@@ -210,7 +222,7 @@ class CompilerApp:
     
     if start_code != "IOL" or end_code != "LOI":
       messagebox.showwarning("Alert", "Invalid code. Please ensure that the code starts with IOL and ends with LOI.")
-      self.console_text.insert(tk.END, "Lexical Analysis failed. Invalid code.")
+      self.update_console_text("Lexical Analysis failed. Invalid code.", "overwrite")
       return False
     
     self.lexical_analyzer.tokenizeInput(code)
@@ -233,7 +245,7 @@ class CompilerApp:
     
     if self.lexical_analyzer.errors:
       error_message = "\n".join(self.lexical_analyzer.errors)
-      self.console_text.insert(tk.END, f"Compilation completed. Lexical errors found:\n{error_message}")
+      self.update_console_text(f"Compilation completed. Lexical errors found:\n{error_message}", "overwrite")
       return False
     
     with open(f"{self.file_directory}/output.tkn", "w") as file:
@@ -251,11 +263,11 @@ class CompilerApp:
       # self.console_text.insert(tk.END, "Syntax Analysis completed successfully. \n")
       return True
     else:
-      self.console_text.insert(tk.END, f"Compilation completed. Syntax errors found:\n{self.parser.error_message}\n")
+      self.update_console_text(f"Compilation completed. Syntax errors found:\n{self.parser.error_message}\n", "overwrite")
       
     if self.parser.error_message:
       error_message = "\n".join(self.parser.error_message)
-      self.console_text.insert(tk.END, f"Compilation completed. Syntax errors found:\n{error_message}")
+      self.update_console_text(f"Compilation completed. Syntax errors found:\n{error_message}", "overwrite")
       return False
     
     
@@ -271,10 +283,10 @@ class CompilerApp:
        self.semantic_analyzer.analyze_code(code)
        
        # If no errors, update the output label
-       self.console_text.insert(tk.END, "Semantic Analysis successful. No errors found.")
+       self.update_console_text("Semantic Analysis successful. No errors found.", "overwrite")
        return True
    except Exception as e:
-       self.console_text.insert(tk.END, f"Semantic Analysis failed: {str(e)}")
+       self.update_console_text(f"Semantic Analysis failed: {str(e)}", "overwrite")
        return False
     
   def compile_code(self):
@@ -290,14 +302,15 @@ class CompilerApp:
     if not self.perform_syntax_analysis():
         return
     
-    self.console_text.insert(tk.END, "Code compiled with no errors found. Program will now be executed...\n\n")
+    self.update_console_text("Code compiled with no errors found. Program will now be executed...\n\n", "overwrite")
     
   def execute_code(self):
-    self.console_text.insert(tk.END, "=== IOL Execution ===\n")
-    self.runtime.process_input_code()
+    self.update_console_text("=== IOL Execution ===\n", "insert")
+    tokens = self.lexical_analyzer.getOutput()
+    self.runtime.process_input_code(tokens)
 
   # Function to perform tokenization based on regex patterns
-  def show_tokenized_output(self):
+  def show_tokenized_output(self): 
       # Get current text from code display area
       current_text = self.code_text.get(1.0, tk.END).strip()
       
