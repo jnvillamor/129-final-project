@@ -6,7 +6,7 @@ from tkinter import ttk, Menu, filedialog, messagebox
 from lexical_analyzer import LexicalAnalyzer
 from symbol_table import SymbolTable
 from parser import Parser
-from test_runtime import Runtime
+from runtime import Runtime
 
 class CompilerApp:
   """

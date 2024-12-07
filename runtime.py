@@ -1,74 +1,159 @@
-import tkinter as tk
+import tkinter as tk 
+from symbol_table import SymbolTable
 
-## Remaining Tasks
-# Implement BEG 
-# - [ ] user input
-# - [ ] update symbol table
-
-# Dynamic Semantic Analysis
-#- [ ] type checking of 2 operands (from BEG)
 class Runtime:
-    def __init__(self, code_text_widget, console_text_widget, symbol_table):
-        self.code_text_widget = code_text_widget
-        self.console_text_widget = console_text_widget
-        self.symbol_table = symbol_table
-        self.input_var_name = None
+  def __init__(self, console_text_widget):
+    self.console_text_widget = console_text_widget
+    self.symbol_table = SymbolTable()
+    self.tokens = {}
 
-    def process_input_code(self, tokens: dict):
-        
-        is_beg_command = False
-        is_print_command = False
-        awaiting_input = False
+    self.line_number = 1
+    self.token_index = 0
 
-        for line_number, token in tokens.items():
-            len_token = len(token)
-            current_token_index = 0
-            
-            while current_token_index < len_token:
-                command = token[current_token_index]
-                word = command["name"]
-                value = command["value"]
-                
-                if word == "BEG":
-                    is_beg_command = True
-                
-                elif is_beg_command:
-                    # Get the next token
-                    current_token_index += 1
-                    next_token = token[current_token_index]
-                    
-                    self.input_var_name = next_token["value"]
-                    
-                    # Enable console for input
-                    self.console_text_widget.config(state=tk.NORMAL)
-                    self.console_text_widget.bind("<Return>", self.capture_input)
-                    
-                    # Disable further editing
-                    self.code_text_widget.config(state=tk.DISABLED)
-                    
-                    is_beg_command = False
-                    
-                current_token_index += 1
-                    
+    self.arithmetic_operators = ["ADD", "SUB", "MULT", "DIV"]
+
+  def _get_next_token(self):
+    commands = self.tokens[self.line_number]
+
+    if self.token_index >= len(commands):
+      self.line_number += 1
+      self.token_index = 0
+      return self._get_next_token()
+
+    # Update the token index
+    self.token_index += 1
+    return commands[self.token_index - 1]
+
+  def _peek_next_token(self):
+    commands = self.tokens[self.line_number]
+    return commands[self.token_index]
+  
+  def _process_arithmetic_operator(self, current_operator: str):
+    # Get the first operand
+    op1 = self._get_next_token()
+
+    # If the operand is a variable, get its value from the symbol table
+    if op1["name"] == "IDENT":
+      op1_type = self.symbol_table.get_symbol(op1["value"])["type"]
+      # if type is not int, raise an error
+      if op1_type != "INT":
+        raise Exception(f"Error: Operand {op1['value']} is not an integer")
+      op1_value = int(self.symbol_table.get_symbol(op1["value"])["value"])
+
+    # If the operand is an integer literal, get its value
+    elif op1["name"] == "INT_LIT":
+      op1_value = int(op1["value"])
+
+    # if the operand is an arithmetic operator, get the result of the operation
+    elif op1["name"] in self.arithmetic_operators:
+      result = self._process_arithmetic_operator(op1["name"])
+      op1_value = result
+    
+    # Get the second operand
+    op2 = self._get_next_token()
+
+    # If the operand is a variable, get its value from the symbol table
+    if op2["name"] == "IDENT":
+      op2_type = self.symbol_table.get_symbol(op2["value"])["type"]
+      # if type is not int, raise an error
+      if op2_type != "INT":
+        raise Exception(f"Error: Operand {op2['value']} is not an integer")
+      op2_value = int(self.symbol_table.get_symbol(op2["value"])["value"])
+
+    # If the operand is an integer literal, get its value
+    elif op2["name"] == "INT_LIT":
+      op2_value = int(op2["value"])
+
+    # if the operand is an arithmetic operator, get the result of the operation
+    elif op2["name"] in self.arithmetic_operators:
+      result = self._process_arithmetic_operator(op2["name"])
+      op2_value = result
+
+    # Perform the operation
+    if current_operator == "ADD":
+      return op1_value + op2_value
+    elif current_operator == "SUB":
+      return op1_value - op2_value
+    elif current_operator == "MULT":
+      return op1_value * op2_value
+    elif current_operator == "DIV":
+      if op2_value == 0:
+        if op2["name"] == "IDENT":
+          raise Exception(f"Error at line {self.line_number}: Division by zero in variable {op2['value']}")
+        else:
+          raise Exception(f"Error at line {self.line_number}: Division by zero in integer literal {op2['value']}")
+      return op1_value / op2_value
+    
+  def _process_print(self):
+    token_to_print = self._get_next_token()
+
+    # If the token to print is a variable, get its value from the symbol table
+    if token_to_print["name"] == "IDENT":
+      value = self.symbol_table.get_symbol(token_to_print["value"])["value"]
+      self.console_text_widget.config(state=tk.NORMAL)
+      self.console_text_widget.insert(tk.END, value)
+      self.console_text_widget.config(state=tk.DISABLED)
+    
+    # If the token to print is an integer literal, insert it into the console text widget
+    elif token_to_print["name"] == "INT_LIT":
+      self.console_text_widget.config(state=tk.NORMAL)
+      self.console_text_widget.insert(tk.END, token_to_print["value"])
+      self.console_text_widget.config(state=tk.DISABLED)
+    
+    # If the token to print is an arithmetic operator, get the result of the operation and insert it into the console text widget
+    elif token_to_print["name"] in self.arithmetic_operators:
+      result = self._process_arithmetic_operator(token_to_print["name"])
+      self.console_text_widget.config(state=tk.NORMAL)
+      self.console_text_widget.insert(tk.END, result)
+      self.console_text_widget.config(state=tk.DISABLED)
+
+  def process_input_code(self, tokens: dict, symbol_table: SymbolTable):
+    self.symbol_table = symbol_table
+    self.tokens = tokens
+
+    self.line_number = 1
+    self.token_index = 0
+
+    current_token = self._get_next_token()
+
+    while current_token["name"] != "LOI":
+      if current_token["name"] in self.arithmetic_operators:
+        result = self._process_arithmetic_operator(current_token["name"])
+
+      elif current_token["name"] == "PRINT":
+        self._process_print()
+
+      elif current_token["name"] == "NEWLN":
         self.console_text_widget.config(state=tk.NORMAL)
-        self.console_text_widget.insert(tk.END, "\n\n Program terminated successfully...")
+        self.console_text_widget.insert(tk.END, "\n")
         self.console_text_widget.config(state=tk.DISABLED)
+      
+      elif current_token["name"] == "INTO":
+        variable = self._get_next_token()
+        is_keyword = self._get_next_token()
+        value = self._get_next_token()
+
+        if value["name"] == "INT_LIT":
+          self.symbol_table.update_symbol(variable["value"], int(value["value"]))
+        elif value["name"] == "IDENT":
+          ident_value = self.symbol_table.get_symbol(value["value"])["value"]
+          self.symbol_table.update_symbol(variable["value"], int(ident_value))
+        elif value["name"] in self.arithmetic_operators:
+          result = self._process_arithmetic_operator(value["name"])
+          self.symbol_table.update_symbol(variable["value"], result)
+
+      elif current_token["name"] == "INT":
+        variable = self._get_next_token()
+
+        if (self._peek_next_token()["name"] == "IS"):
+          self._get_next_token()
+          value = self._get_next_token()
+
+          if value["name"] == "INT_LIT":
+            self.symbol_table.update_symbol(variable["value"], int(value["value"]))
+          elif value["name"] == "IDENT":
+            ident_value = self.symbol_table.get_symbol(value["value"])["value"]
+            self.symbol_table.update_symbol(variable["value"], int(ident_value))
         
-    def capture_input(self, event):
-        """
-            Waits for the user to input a value and stores it in the symbol table.
-        """
-        # Get the last line of text from the console (user input)
-        input_text = self.console_text_widget.get("end-2c linestart", "end-1c")
-        
-        # Only process if there's actual input
-        if input_text.strip():
-            print(f"Input for {self.input_var_name}: {input_text}")
-            # Update the symbol table with user input
-            self.symbol_table.get_symbol(self.input_var_name)["value"] = input_text
-            # Disable further editing and unbind the Return key event
-            self.console_text_widget.config(state=tk.DISABLED)
-            self.console_text_widget.unbind("<Return>")
-            # Resume processing after input is captured
-            self.process_input_code(self.tokens)  # Re-process the tokens
-            return input_text
+      current_token = self._get_next_token()
+
