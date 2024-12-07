@@ -19,6 +19,9 @@ class SymbolTable:
   def get_symbol_table(self):
     return self.symbol_table
   
+  def update_symbol(self, symbol: str, value: str | int):
+    self.symbol_table[symbol]["value"] = value
+  
   # Print the symbol table
   def print_symbol_table(self):
     for symbol in self.symbol_table:

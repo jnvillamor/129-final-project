@@ -282,7 +282,7 @@ class Parser:
           # If the current symbol is an arithmetic operation, perform semantic checks
           if current_symbol in ["ADD", "MULT", "SUB", "DIV", "MOD"]:
             print("Running semantic checks for operation")
-            self._handleOperation(current_input, current_symbol, line)
+            # self._handleOperation(current_input, current_symbol, line)
 
           # If the current symbol matches the current input, pop the input buffer and update the current symbol
           print("Match")

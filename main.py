@@ -6,7 +6,7 @@ from tkinter import ttk, Menu, filedialog, messagebox
 from lexical_analyzer import LexicalAnalyzer
 from symbol_table import SymbolTable
 from parser import Parser
-from runtime import Runtime
+from test_runtime import Runtime
 
 class CompilerApp:
   """
@@ -109,7 +109,7 @@ class CompilerApp:
     self.tree.pack(fill="both", expand=True)
 
     # Initialize Runtime after code_text and console_text are created
-    self.runtime = Runtime(self.code_text, self.console_text, self.symbol_table)
+    self.runtime = Runtime(self.console_text)
   
   def update_console_text(self, text: str, operation: str = "insert"):
     # if the operation is insert, enable the text widget, append the text, and disable it again
@@ -209,6 +209,7 @@ class CompilerApp:
     self.lexical_analyzer.variables.clear()
 
     code = self.code_text.get(1.0, tk.END).strip()
+    print(code)
     self.current_input = code
     
     self.update_console_text("Input .iol file loaded successfully.", "overwrite")
@@ -305,9 +306,9 @@ class CompilerApp:
     self.update_console_text("Code compiled with no errors found. Program will now be executed...\n\n", "overwrite")
     
   def execute_code(self):
-    self.update_console_text("=== IOL Execution ===\n", "insert")
+    self.update_console_text("=== IOL Execution ===\n", "overwrite")
     tokens = self.lexical_analyzer.getOutput()
-    self.runtime.process_input_code(tokens)
+    self.runtime.process_input_code(tokens, self.symbol_table)
 
   # Function to perform tokenization based on regex patterns
   def show_tokenized_output(self): 
