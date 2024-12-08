@@ -231,7 +231,6 @@ class CompilerApp:
     self.lexical_analyzer.variables.clear()
 
     code = self.code_text.get(1.0, tk.END).strip()
-    print(code)
     self.current_input = code
     
     if not code:

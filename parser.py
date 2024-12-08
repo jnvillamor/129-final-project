@@ -1,11 +1,7 @@
-"""
-Class for parsing the input string using user-input production and parse tables.
-"""
 
-from lexical_analyzer import LexicalAnalyzer
 from symbol_table import SymbolTable
 
-class Parser:
+class Parser: 
   def __init__(self, symbol_table: SymbolTable):
     self.prod_table = []
     self.parse_table = []
@@ -13,24 +9,26 @@ class Parser:
 
     self.stack = []
     self.input_buffer = []
-    self.action = []
     self.total_output = []
 
     self.is_valid = bool
     self.error_message = []
 
-    # Flags for variable semantic checks
-    self.is_variable_declaration = False
-    self.current_data_type = None
-    self.current_identifier = None
-    self.is_waiting_for_value = False
+    self.line_number = 1
 
-    # Flags for assignment semantic checks
-    self.is_assignment = False
+    # Flags
+    self.arithmetic_operators = ["ADD", "SUB", "MULT", "DIV", "MOD"]
+    self.operation_stack_index = 0
+    self.operation_stack = []
 
-    self._getProdTable()
+    self.in_declaration = False
+    self.declaration_stack = []
+    self.declaration_line = 0
+
+    self.in_assignment = False
+
+    self._getProdTable();
     self._getParseTable()
-
 
   def _getProdTable(self):
     """
@@ -66,7 +64,6 @@ class Parser:
     except Exception as e:
       print(f"Error reading grammar.ptbl: {str(e)}")
 
-
   def _getParseTableRow(self, symbol: str):
     """
       Get the row of the parse table corresponding to the given symbol.
@@ -74,7 +71,7 @@ class Parser:
     for ind, X in enumerate(self.parse_table):
       if X[0] == symbol:
         return ind
-  
+
   def _getParseTableCol(self, symbol: str):
     """
       Get the column of the parse table corresponding to the given symbol.
@@ -82,258 +79,163 @@ class Parser:
     for ind, X in enumerate(self.parse_table[0]):
       if X == symbol:
         return ind
-  
-  def _handleVariableDeclaration(self, current_input: dict, current_symbol: str, line: int):
-    """
-      Handle semantic checks for variable declarations in the parsing process.
-      
-      This function manages the state of variable declarations by tracking:
-      - Whether we're currently processing a variable declaration
-      - The current data type being declared (INT or STR)
-      - The identifier being declared
-      - Whether we're waiting for a value assignment
-      
-      It performs type checking to ensure:
-      - Variables are declared with valid data types (INT or STR)
-      - Assigned values match the declared type
-      - When assigning from another variable, types are compatible
-      
-      Args:
-          current_input (dict): Dictionary containing the current token information
-          current_symbol (str): The current symbol being processed
-          line (int): The current line number in the source code
-          
-      Side Effects:
-          - Updates internal state flags for declaration processing
-          - Adds error messages to self.error_message for type mismatches
-          - Updates symbol table entries via self.symbol_table
-    """
-    if current_symbol in ["INT", "STR"]:
-      print("Variable Declaration Flag Set")
-      self.is_variable_declaration = True
-      self.current_data_type = current_symbol
 
-    elif self.is_variable_declaration and not self.is_waiting_for_value and current_symbol == "IDENT":
-      print("Identifier Set")
-      self.current_identifier = current_input["value"]
+  def _getOperationStackNextToken(self):
+    self.operation_stack_index += 1
+    return self.operation_stack[self.operation_stack_index - 1]
 
-    elif self.is_variable_declaration and not self.is_waiting_for_value and current_symbol == "IS":
-      # Keep the flag on, waiting for value
-      self.is_waiting_for_value = True
-      print("Waiting for value")
+  def _expressionSemanticAnalysis(self):
+    operator = self._getOperationStackNextToken()
 
-    elif self.is_variable_declaration and self.is_waiting_for_value:
-      # Check value type matches declaration
-      if current_symbol == "INT_LIT":
-        if self.current_data_type != "INT": # If the declared type is not INT, throw an error
-          self.error_message.append(f'Error at line {line}: Type mismatch - Variable {self.current_identifier} declared as {self.current_data_type} but assigned {current_input["value"]}')
-
-      elif current_symbol == "IDENT":
-        # Check if the identifier has the same data type as the declaration
-        if self.symbol_table.get_symbol(current_input["value"])["type"] != self.current_data_type:
-          self.error_message.append(f'Error at line {line}: Type mismatch - Variable {self.current_identifier} declared as {self.current_data_type} but assigned {self.symbol_table.get_symbol(current_input["value"])["type"]}')
-      
-      # Reset flags after processing the declaration
-      print("Resetting flags")
-      self.is_variable_declaration = False
-      self.is_waiting_for_value = False
-      self.current_data_type = None
-      self.current_identifier = None
-    
+    # Check if the op1 is expression
+    op1 = self._getOperationStackNextToken()
+    if (op1["name"] in self.arithmetic_operators):
+      self.operation_stack_index -= 1
+      op1_type = self._expressionSemanticAnalysis()
+    elif (op1["name"] == "IDENT"):
+      variable = self.symbol_table.get_symbol(op1["value"])
+      op1_type = variable["type"]
     else:
-      # If we're not waiting for a value, reset the flags
-      self.is_variable_declaration = False
-      self.is_waiting_for_value = False
-      self.current_data_type = None
-      self.current_identifier = None
+      op1_type = "INT"
 
-  def _handleAssignment(self, current_input: dict, current_symbol: str, line: int):
-    """
-    Handle semantic checks for assignment statements (INTO identifier IS expression).
-    Ensures type compatibility between the identifier and the assigned expression.
-    
-    Args:
-        current_input (dict): Dictionary containing the current token information
-        current_symbol (str): The current symbol being processed
-        line (int): The current line number in the source code
-        
-    Side Effects:
-
-    """
-    # If the current symbol is INTO, set the flag and reset the current identifier and waiting for value flag
-    if current_symbol == "INTO":
-      self.is_assignment = True
-      self.current_identifier = None
-      self.is_waiting_for_value = False
-    
-    # If the current symbol is an identifier and we haven't set the current identifier yet, store it
-    elif current_symbol == "IDENT" and self.current_identifier is None:
-      # Store the identifier being assigned to
-      self.current_identifier = current_input["value"]
-      # Get its type from symbol table
-      self.current_data_type = self.symbol_table.get_symbol(current_input["value"])["type"]
-    
-    # If we're waiting for a value, set the flag
-    elif current_symbol == "IS":
-      self.is_waiting_for_value = True
-    
-    # If we're waiting for a value, check if it matches the declared type
-    elif self.is_waiting_for_value:
-      if current_symbol == "INT_LIT":
-        if self.current_data_type != "INT": # If the declared type is not INT, throw an error
-          self.error_message.append(f'Error at line {line}: Type mismatch in assignment - Variable {self.current_identifier} is {self.current_data_type} but assigned {current_input["value"]}')
-      
-      elif current_symbol == "IDENT": # If the identifier is not the same type as the declared type, throw an error
-        if self.symbol_table.get_symbol(current_input["value"])["type"] != self.current_data_type:
-          self.error_message.append(f'Error at line {line}: Type mismatch in assignment - Variable {self.current_identifier} is {self.current_data_type} but assigned {current_input["value"]}')
-      
-      # Reset flags
-      self.is_assignment = False
-      self.current_identifier = None
-      self.current_data_type = None
-      self.is_waiting_for_value = False
-    
-    # If we're not waiting for a value, reset the flags
+    # Check if the op1 is expression
+    op2 = self._getOperationStackNextToken()
+    if (op2["name"] in self.arithmetic_operators):
+      self.operation_stack_index -= 1
+      op2_type = self._expressionSemanticAnalysis()
+    elif (op2["name"] == "IDENT"):
+      variable = self.symbol_table.get_symbol(op2["value"])
+      op2_type = variable["type"]
     else:
-      self.is_assignment = False
-      self.current_identifier = None
-      self.current_data_type = None
-      self.is_waiting_for_value = False
+      op2_type = "INT"
 
-  def _handleOperation(self, current_input: dict, current_symbol: str, line: int):
-    """
-    Handle semantic checks for arithmetic operations (ADD, MULT, SUB, DIV, MOD).
-    Ensures both operands are of type INT.
-    
-    Args:
-        current_input (dict): Dictionary containing the current token information
-        current_symbol (str): The current symbol being processed
-        line (int): The current line number in the source code
-    
-    Side Effects:
-        - Adds error messages to self.error_message for type mismatches
-    """
-    if current_symbol in ["ADD", "MULT", "SUB", "DIV", "MOD"]:
-        # Check first operand
-        next_token = self.input_buffer[1] if len(self.input_buffer) > 1 else None
-        second_token = self.input_buffer[2] if len(self.input_buffer) > 2 else None
-        
-        # Check if there are two operands to check types
-        if next_token and second_token:
-            # Check first operand
-            if next_token["name"] == "IDENT":
-                symbol_type = self.symbol_table.get_symbol(next_token["value"])["type"]
-                if symbol_type != "INT":
-                    self.error_message.append(f'Error at line {line} {current_symbol} {next_token["value"]} {second_token["value"]}: Type mismatch in operation - Expected INT but found {symbol_type} for operand {next_token["value"]}')
-            elif next_token["name"] != "INT_LIT":
-                  self.error_message.append(f'Error at line {line} {current_symbol} {next_token["value"]} {second_token["value"]}: Type mismatch in operation - Expected INT but found {symbol_type} for operand {next_token["value"]}')
-            
-            # Check second operand
-            if second_token["name"] == "IDENT":
-                symbol_type = self.symbol_table.get_symbol(second_token["value"])["type"]
-                if symbol_type != "INT":
-                  self.error_message.append(f'Error at line {line} {current_symbol} {next_token["value"]} {second_token["value"]}: Type mismatch in operation - Expected INT but found {symbol_type} for operand {second_token["value"]}')
-            elif second_token["name"] != "INT_LIT":
-              self.error_message.append(f'Error at line {line} {current_symbol} {next_token["value"]} {second_token["value"]}: Type mismatch in operation - Expected INT but found {symbol_type} for operand {second_token["value"]}')
+    return "INT" if (op1_type == "INT" and op2_type == "INT") else "STR"
+
+  def _varDeclarationSemanticAnalysis(self):
+    var_data_type = self.declaration_stack[0]["name"]
+
+    # If value is declared when the variable is initialize, perform type checking
+    if (len(self.declaration_stack) == 4):
+      value = self.declaration_stack[3]
+
+      if (var_data_type == "INT"):
+        if (value["name"] == "IDENT"):
+          variable_type = self.symbol_table.get_symbol(value["value"])["type"]
+          if (variable_type != "INT"):
+            self.error_message.append(f'Semantic Error: {value["value"]} is {variable_type} (Expected {var_data_type})')
+      
+      # Operations is detected
+    if(len(self.declaration_stack) > 4):
+      self.operation_stack = self.declaration_stack[3::]
+      resulting_type = self._expressionSemanticAnalysis()
+      if (var_data_type != resulting_type):
+        self.error_message.append(f"Semantic Error in line {self.declaration_line}: The resulting type of expression '{' '.join(list(map(lambda x: x['name'] if x['value'] == None else x['value'], self.operation_stack)))}' is {resulting_type} (expected {var_data_type})")
+
+      self.operation_stack_index = 0
+      self.operation_stack = []
+
 
   def parse(self, input_tokens: list[dict]):
-    """
-      Parse the input tokens using the production and parse tables.
-      
-      Side Effects:
-        - Adds error messages to self.error_message for type mismatches
-        - Updates self.is_valid to False if an error is encountered
-    """
+    # Reset the containers
     self.total_output = []
     self.input_buffer = []
     self.error_message = []
     self.is_valid = True
+
+    # Append the end symbol
     self.stack.append('$')
+    # Append the start symbol
     self.stack.append(self.prod_table[0][1])
+    # Get the current symbol in the top of the stack
     current_symbol = self.stack.pop()
-    
-    # Iterate through each line of the input tokens
+
+
+    # Iterate through each line of the input tokens.
     for line in input_tokens:
-      if not self.is_valid: # If an error is encountered, break out of the loop
+      self.line_number = line
+
+      # Stop the function if an error is found
+      if not self.is_valid:
         break
-      
+
       # Add the line to the input buffer
       for token in input_tokens[line]:
         self.input_buffer.append(token)
-
-      # Initialize current input and symbol
-      current_input = self.input_buffer[0]
       
+      # Initialize the current input and symbol
+      current_input = self.input_buffer[0]
+
       # Iterate through the stack and input buffer until the stack is empty or the end of the input is reached
       while (current_symbol != '$' and len(self.stack) != 0 and len(self.input_buffer) != 0):
-        print(f"\nCurrent Symbol: {current_symbol} | Current Input: {current_input}")
-
-        # If the current symbol matches the current input, perform semantic checks
-        if(current_symbol == current_input["name"]):
-          # Add semantic checks for variable declarations and assignments
-          if self.is_variable_declaration or current_symbol in ["INT", "STR"]:
-            print("Running semantic checks for variable declaration")
-            self._handleVariableDeclaration(current_input, current_symbol, line)
+        
+        # If the current symbol matches the current input
+        if (current_symbol == current_input["name"]):
+          if (self.in_declaration):
+            self.declaration_stack.append(current_input)
             
-          elif self.is_assignment or current_symbol == "INTO":
-            print("Running semantic checks for assignment")
-            self._handleAssignment(current_input, current_symbol, line)
-            
-          # If the current symbol is an arithmetic operation, perform semantic checks
-          if current_symbol in ["ADD", "MULT", "SUB", "DIV", "MOD"]:
-            print("Running semantic checks for operation")
-            # self._handleOperation(current_input, current_symbol, line)
-
-          # If the current symbol matches the current input, pop the input buffer and update the current symbol
-          print("Match")
+          # Remove the input from the input buffer
           self.input_buffer.pop(0)
+          # Update the current symbol and input
           current_symbol = self.stack.pop()
           current_input = self.input_buffer[0] if len(self.input_buffer) != 0 else ''
-        
-        # If the current symbol is a terminal and does not match the current input, throw an error
-        elif(current_symbol.isupper() and current_symbol != current_input["name"]):
-          print(f'Error at line {line}: Terminal mismatch - Expected {current_symbol}, found {current_input["name"]} with value {current_input["value"]}')
+
+        # if there is token mismatch, append error message
+        elif (current_symbol.isupper() and current_symbol != current_input["name"]):
+          self.error_message.append(f'Error at line {line}: Terminal mismatch - Expected {current_symbol}, found {current_input["name"]} with value {current_input["value"]}')
           self.is_valid = False
           break
-        
-        # If the current symbol is not a terminal, get the production from the parse table
+
+        # if the current symbol is non-terminal, get the production from the parse table
         else:
-          print("Getting production")
-          # Get the production from the parse table
           parse_row = self._getParseTableRow(current_symbol)
           parse_col = self._getParseTableCol(current_input["name"])
-          parse_cell = self.parse_table[parse_row][parse_col]
 
-          # If the production is empty, throw an error  
-          if parse_cell == '':
+          # If the parse_row or col is not a valid index raise error
+          if parse_row == None or parse_col == None:
             self.error_message.append(f'Error at line {line}: No production found for input {current_input["name"]} with value {current_input["value"]}')
-            print(f'Error at line {line}: No production found for input {current_input["name"]} with value {current_input["value"]}')
             self.is_valid = False
             break
 
+          parse_cell = self.parse_table[parse_row][parse_col]
+
+          # if the parse cell is empty raise error 
+          if parse_cell == '':
+            self.error_message.append(f'Error at line {line}: No production found for input {current_input["name"]} with value {current_input["value"]}')
+            self.is_valid = False
+            break
+          
           # Get the production from the production table
           production = self.prod_table[int(parse_cell) - 1][2]
+          production_name = self.prod_table[int(parse_cell) - 1][1]
           production_symbols = production.strip().split(' ')
 
-          # Add symbols to stack in reverse order
+          if(production_name == "VariableDeclaration"):
+            self.in_assignment = False
+
+            if (self.in_declaration):
+              # Perform semantic analysis
+              self._varDeclarationSemanticAnalysis()
+              self.declaration_stack = []
+            else:
+              self.in_declaration = True
+              self.declaration_line = line
+          if (self.in_declaration and production_name == "VarDeclTail"):
+            if ('e' in production_symbols):
+              self._varDeclarationSemanticAnalysis()
+              self.in_declaration = False
+              self.declaration_stack = []
+
+          if(production == "Assignment"):
+            self.in_assignment = True
+            
+
+          # Add the symbols to stack in reverse order
           for symbol in production_symbols[::-1]:
-            if symbol != 'e': # If the symbol is not epsilon, add it to the stack
+            if symbol != 'e':
               self.stack.append(symbol)
-            else: # If the symbol is epsilon, reset flags
-              print("e production")
-              # If DataType IDENT is completed, reset flags
-              if self.is_variable_declaration and self.current_identifier is not None:
-                self.is_variable_declaration = False
-                self.current_identifier = None
-                self.is_waiting_for_value = False
-                self.current_data_type = None
-
-          # Print the production  
-          print(f'Output {current_symbol} > {production}')
-          # Update the current symbol
+          
           current_symbol = self.stack.pop()
+    
+    print(f"The input is {'Valid' if self.is_valid else 'Invalid'}")
 
-    # Print the errors if any
-    if len(self.error_message) != 0:
-      for error in self.error_message:
-        print(error)
+
