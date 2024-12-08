@@ -95,12 +95,14 @@ class Runtime:
       value = self.symbol_table.get_symbol(token_to_print["value"])["value"]
       self.console_text_widget.config(state=tk.NORMAL)
       self.console_text_widget.insert(tk.END, value)
+      self.console_text_widget.see(tk.END)
       self.console_text_widget.config(state=tk.DISABLED)
     
     # If the token to print is an integer literal, insert it into the console text widget
     elif token_to_print["name"] == "INT_LIT":
       self.console_text_widget.config(state=tk.NORMAL)
       self.console_text_widget.insert(tk.END, token_to_print["value"])
+      self.console_text_widget.see(tk.END)
       self.console_text_widget.config(state=tk.DISABLED)
     
     # If the token to print is an arithmetic operator, get the result of the operation and insert it into the console text widget
@@ -108,6 +110,7 @@ class Runtime:
       result = self._process_arithmetic_operator(token_to_print["name"])
       self.console_text_widget.config(state=tk.NORMAL)
       self.console_text_widget.insert(tk.END, result)
+      self.console_text_widget.see(tk.END)
       self.console_text_widget.config(state=tk.DISABLED)
   
   # Iterate through the tokens and process them
@@ -130,6 +133,7 @@ class Runtime:
       elif current_token["name"] == "NEWLN":
         self.console_text_widget.config(state=tk.NORMAL)
         self.console_text_widget.insert(tk.END, "\n")
+        self.console_text_widget.see(tk.END)
         self.console_text_widget.config(state=tk.DISABLED)
       
       elif current_token["name"] == "INTO":
@@ -204,6 +208,7 @@ class Runtime:
           # Update console text widget
           self.console_text_widget.config(state=tk.NORMAL)
           self.console_text_widget.insert(tk.END, user_input + "\n") 
+          self.console_text_widget.see(tk.END)
           self.console_text_widget.config(state=tk.DISABLED)
             
         elif variable_type == "STR": # STR input
@@ -217,6 +222,7 @@ class Runtime:
           
           self.console_text_widget.config(state=tk.NORMAL)
           self.console_text_widget.insert(tk.END, user_input + "\n")
+          self.console_text_widget.see(tk.END)
           self.console_text_widget.config(state=tk.DISABLED)
       
 
@@ -229,9 +235,11 @@ class Runtime:
       self.console_text_widget.insert(tk.END, "\n\nProgram terminated due to encountered error:\n")
       for error in self.error_message:
         self.console_text_widget.insert(tk.END, error + "\n")
+      self.console_text_widget.see(tk.END)
       self.console_text_widget.config(state=tk.DISABLED)
       
     else:
       self.console_text_widget.config(state=tk.NORMAL)
       self.console_text_widget.insert(tk.END, "\n\nProgram terminated successfully...")
+      self.console_text_widget.see(tk.END)
       self.console_text_widget.config(state=tk.DISABLED)
