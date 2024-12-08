@@ -182,13 +182,19 @@ class Runtime:
         # Get user input
         user_input = tk.simpledialog.askstring("Input", f"Enter value for {variable['value']} (type: {variable_type})")
         
+        # If cancel button is clicked, treat it as an empty input
+        if user_input == None:
+          user_input = ""
+          
         # Check data type of user input and match with variable type
         if variable_type == "INT":  
+          print("Input for int: ", user_input)
+          
           if not re.fullmatch(r'^[0-9]+$', user_input):
             self.error_message.append(f"Error at line {self.line_number}: Expected an integer for variable {variable['value']}")
             break
          
-          if user_input == "" or None:  # If the user input is empty, raise error
+          if user_input == "":  # If the user input is empty, raise error
             self.error_message.append(f"Error at line {self.line_number}: Empty input for variable {variable['value']}")
             break
             
@@ -213,20 +219,19 @@ class Runtime:
           self.console_text_widget.insert(tk.END, user_input + "\n")
           self.console_text_widget.config(state=tk.DISABLED)
       
-      # If there is any error message, update the console and stop runtime
-      if self.error_message:
-        self.console_text_widget.config(state=tk.NORMAL)
-        for error in self.error_message:
-          self.console_text_widget.insert(tk.END, error + "\n")
-          
-        self.console_text_widget.insert(tk.END, "\nProgram terminated due to errors...")
-        self.console_text_widget.config(state=tk.DISABLED)
-        
-        break 
-      
+
       current_token = self._get_next_token()
     
-    self.console_text_widget.config(state=tk.NORMAL)
-    self.console_text_widget.insert(tk.END, "\n\nProgram terminated successfully...")
-    self.console_text_widget.config(state=tk.DISABLED)
-
+    # If no error message, update the console text widget
+    # If there is any error message, update the console and stop runtime
+    if self.error_message:
+      self.console_text_widget.config(state=tk.NORMAL)
+      self.console_text_widget.insert(tk.END, "\n\nProgram terminated due to encountered error:\n")
+      for error in self.error_message:
+        self.console_text_widget.insert(tk.END, error + "\n")
+      self.console_text_widget.config(state=tk.DISABLED)
+      
+    else:
+      self.console_text_widget.config(state=tk.NORMAL)
+      self.console_text_widget.insert(tk.END, "\n\nProgram terminated successfully...")
+      self.console_text_widget.config(state=tk.DISABLED)

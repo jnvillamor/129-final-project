@@ -271,24 +271,7 @@ class CompilerApp:
       self.update_console_text(f"Compilation completed. Syntax errors found:\n{error_message}", "overwrite")
       return False
     
-    
     return self.parser.is_valid
-    
-  # Function to perform semantic analysis on the tokenized code
-  def perform_semantic_analysis(self):
-   try:
-       # Get the current code from the text widget
-       code = self.code_text.get(1.0, tk.END).strip()
-       
-       # Perform semantic analysis
-       self.semantic_analyzer.analyze_code(code)
-       
-       # If no errors, update the output label
-       self.update_console_text("Semantic Analysis successful. No errors found.", "overwrite")
-       return True
-   except Exception as e:
-       self.update_console_text(f"Semantic Analysis failed: {str(e)}", "overwrite")
-       return False
     
   def compile_code(self):
     self.tokenized_output = ""
@@ -305,10 +288,21 @@ class CompilerApp:
     
     self.update_console_text("Code compiled with no errors found. Program will now be executed...\n", "overwrite")
     
+    # Execute the code right after compilation
+    self.execute_code()
+
+    
+    
   def execute_code(self):
-    self.update_console_text("\n=== IOL Execution ===\n", "insert")
     # Check if the code has been compiled
     tokens = self.lexical_analyzer.getOutput()
+    
+    # If tokens is empty, the code has not been compiled
+    if not tokens:
+        self.update_console_text("Please compile the code first.\n", "insert")
+        return
+    
+    self.update_console_text("\n=== IOL Execution ===\n", "insert")
     self.runtime.process_input_code(tokens, self.symbol_table)
 
   # Function to perform tokenization based on regex patterns
