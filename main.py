@@ -19,6 +19,7 @@ class CompilerApp:
     self.tokenized_output = ""
     self.file_directory = ""
     self.current_display_input = True
+    self.opened_file = False
     
     self.symbol_table = SymbolTable()
     self.lexical_analyzer = LexicalAnalyzer()
@@ -57,6 +58,7 @@ class CompilerApp:
     # Compile Menu
     self.compile_menu = Menu(self.menu, tearoff=0)
     self.compile_menu.add_command(label="Compile Code", command=self.compile_code, accelerator="Ctrl+C")
+    self.compile_menu.add_command(label="Show Tokenized Code", command=self.show_tokenized_output, accelerator="Ctrl+J")
     self.menu.add_cascade(label="Compile", menu=self.compile_menu)
 
     # Run Menu
@@ -64,12 +66,6 @@ class CompilerApp:
     self.run_menu.add_command(label="Execute Code", command=self.execute_code, accelerator="Ctrl+E")
     self.menu.add_cascade(label="Run", menu=self.run_menu)
     
-    # View Menu
-    self.view_menu = Menu(self.menu, tearoff=0)
-    self.view_menu.add_command(label="Show Tokenized Code", command=self.show_tokenized_output, accelerator="Ctrl+J")
-    self.view_menu.add_command(label="Toggle Theme", command=self.toggle_theme, accelerator="Ctrl+D")
-    self.menu.add_cascade(label="View", menu=self.view_menu)
-
     self.main_window.config(menu=self.menu)
 
     # Bind keyboard shortcuts
@@ -80,14 +76,22 @@ class CompilerApp:
     self.main_window.bind("<Control-c>", lambda event: self.compile_code())
     self.main_window.bind("<Control-j>", lambda event: self.show_tokenized_output())
     self.main_window.bind("<Control-e>", lambda event: self.execute_code())
-    self.main_window.bind("<Control-d>", lambda event: self.toggle_theme())
 
-    # Code display area
-    self.code_frame = tk.Frame(self.main_window, bg=self.bg_color, bd=0)
-    self.code_frame.place(relx=0.03, rely=0.1, relwidth=0.65, relheight=0.65)
+    # Frame for source code area
+    self.code_frame_wrapper = tk.Frame(self.main_window, bg=self.bg_color)
+    self.code_frame_wrapper.place(relx=0.03, rely=0.1, relwidth=0.65, relheight=0.65)
+    
+    # Tab label of source code area
+    self.tab_label = "Untitled"
+    self.code_frame_label = tk.Label(self.code_frame_wrapper, text=self.tab_label, font=("Arial", 12, "bold"), bg=self.bg_color, fg=self.text_color, anchor="w")
+    self.code_frame_label.pack(side="top", fill="x", pady=(0, 2))  # Slight padding for separation
+
+    # Source code textarea
+    self.code_frame = tk.Frame(self.code_frame_wrapper, bg=self.bg_color, bd=0)
+    self.code_frame.pack(fill="both", expand=True)
     self.code_text = tk.Text(self.code_frame, font=("Consolas", 12), bg=self.frame_color, fg=self.text_color, wrap="word", padx=10, pady=10, relief="flat", insertbackground=self.text_color)
     self.code_text.pack(fill="both", expand=True)
-
+    
     # Output area
     self.console_frame = tk.Frame(self.main_window, bg=self.bg_color, bd=0, relief="flat")
     self.console_frame.place(relx=0.03, rely=0.78, relwidth=0.94, relheight=0.18)
@@ -98,9 +102,19 @@ class CompilerApp:
     self.console_text.pack(side="left", fill="both", expand=True)
     self.console_text.config(state=tk.DISABLED)
 
-    # Variables table
-    self.variables_frame = tk.Frame(self.main_window, bg=self.bg_color, bd=0)
-    self.variables_frame.place(relx=0.7, rely=0.1, relwidth=0.27, relheight=0.65)
+    # Variable tables wrapper
+    self.variables_frame_wrapper = tk.Frame(self.main_window, bg=self.bg_color)
+    self.variables_frame_wrapper.place(relx=0.7, rely=0.1, relwidth=0.27, relheight=0.65)
+    
+    # Header for the variables table
+    self.variables_header = tk.Label(self.variables_frame_wrapper, text="Variables", font=("Arial", 12, "bold"), bg=self.bg_color, fg=self.text_color)
+    self.variables_header.pack(side="top", fill="x", pady=(0, 2))
+
+    # Frame for the treeview (table)
+    self.variables_frame = tk.Frame(self.variables_frame_wrapper, bg=self.bg_color, bd=0)
+    self.variables_frame.pack(fill="both", expand=True)
+
+    # Treeview for the variables
     self.tree = ttk.Treeview(self.variables_frame, columns=("Variable", "Type"), show="headings")
     self.tree.heading("Variable", text="Variable")
     self.tree.heading("Type", text="Type")
@@ -116,11 +130,13 @@ class CompilerApp:
     if operation == "insert":
       self.console_text.config(state=tk.NORMAL)
       self.console_text.insert(tk.END, text)
+      self.console_text.see(tk.END)
       self.console_text.config(state=tk.DISABLED)
     else:
       self.console_text.config(state=tk.NORMAL)
       self.console_text.delete(1.0, tk.END)
       self.console_text.insert(tk.END, text)
+      self.console_text.see(tk.END)
       self.console_text.config(state=tk.DISABLED)
       
   def run(self):
@@ -143,23 +159,6 @@ class CompilerApp:
     self.style = ttk.Style()
     self.style.configure("Treeview", background=self.frame_color, foreground=self.text_color, fieldbackground=self.frame_color)
     self.style.map("Treeview", background=[('selected', self.button_color)], foreground=[('selected', 'white')])
-
-  # Function to switch between dark mode and light mode
-  def toggle_theme(self):
-    self.is_dark_mode = not self.is_dark_mode
-    if self.is_dark_mode:
-      self.bg_color = "#2c2c2c"
-      self.text_color = "#ffffff"
-      self.button_color = "#0082C8"
-      self.frame_color = "#3a3a3a"
-    else:
-      self.bg_color = "#f0f0f0"
-      self.text_color = "#000000"
-      self.button_color = "#007acc"
-      self.frame_color = "#e0e0e0"
-
-    # Apply theme changes
-    self.apply_theme()
 
   # Function to generate a button with rounded corners
   def generate_rounded_button(self, parent, label, action):
@@ -185,7 +184,12 @@ class CompilerApp:
         self.code_text.insert(tk.END, code_content)
         self.main_window.title(f"Syntax Analyzer - {file_path.split('/')[-1]}")
     
-      self.update_console_text("Input .iol file loaded successfully.", "overwrite")
+      # Update tab label
+      self.tab_label = file_path.split("/")[-1]
+      self.code_frame_label.config(text=self.tab_label)
+      self.opened_file = True
+      
+      self.update_console_text(f"Input {self.tab_label} file loaded successfully.", "overwrite")
   
   # Function to save the current code to a file
   def save_file(self):
@@ -193,6 +197,17 @@ class CompilerApp:
     if file_path:
       with open(file_path, 'w') as file:
         file.write(self.code_text.get(1.0, tk.END))
+      
+      if not self.opened_file:
+        # Update tab label if it's a new file
+        self.tab_label = file_path.split("/")[-1]
+        self.code_frame_label.config(text=self.tab_label)
+        self.update_console_text(f"File saved as {file_path.split('/')[-1]}.", "overwrite")
+        
+      else:
+        self.opened_file = False
+        self.update_console_text(f"File saved successfully.", "overwrite")
+      
 
   # Function to save the current code to a file without changing the name
   def save_file_as(self):
@@ -201,6 +216,13 @@ class CompilerApp:
       with open(file_path, 'w') as file:
         file.write(self.code_text.get(1.0, tk.END))
         self.main_window.title(f"Syntax Analyzer - {file_path.split('/')[-1]}")
+        
+      # Update tab label
+      self.tab_label = file_path.split("/")[-1]
+      self.code_frame_label.config(text=self.tab_label)
+      self.opened_file = True
+      
+      self.update_console_text(f"File saved as {file_path.split('/')[-1]}.", "overwrite")
 
   # Function to perform lexical analysis (tokenization) on the code
   def perform_lexical_analysis(self):
@@ -212,9 +234,7 @@ class CompilerApp:
     print(code)
     self.current_input = code
     
-    self.update_console_text("Input .iol file loaded successfully.", "overwrite")
     if not code:
-      messagebox.showwarning("Alert", "Please input or load code for analysis.")
       self.update_console_text("Lexical Analysis failed. No code to analyze.", "overwrite")
       return False
     
@@ -286,23 +306,29 @@ class CompilerApp:
     if not self.perform_syntax_analysis():
         return
     
-    self.update_console_text("Code compiled with no errors found. Program will now be executed...\n", "overwrite")
+    self.update_console_text("Code compiled with no errors found. Program will now be executed...", "overwrite")
     
     # Execute the code right after compilation
     self.execute_code()
-
-    
     
   def execute_code(self):
     # Check if the code has been compiled
     tokens = self.lexical_analyzer.getOutput()
     
+    # Get the current code
+    code = self.code_text.get(1.0, tk.END).strip()
+    self.current_input = code
+    
+    if not code:
+      self.update_console_text("Execution failed. No code to execute.", "overwrite")
+      return
+    
     # If tokens is empty, the code has not been compiled
     if not tokens:
-        self.update_console_text("Please compile the code first.\n", "insert")
+        self.update_console_text("Execution failed. Please compile the code first.\n", "overwrite")
         return
     
-    self.update_console_text("\n=== IOL Execution ===\n", "insert")
+    self.update_console_text("\n\n=== IOL Execution ===\n", "insert")
     self.runtime.process_input_code(tokens, self.symbol_table)
 
   # Function to perform tokenization based on regex patterns
@@ -312,7 +338,7 @@ class CompilerApp:
       
       # If text has been modified or not compiled yet
       if current_text != self.current_input or not self.tokenized_output:
-          messagebox.showwarning("Alert", "Please compile the code first.")
+          self.update_console_text("Please compile the code first.\n", "overwrite")
           return
           
       # Create tokenized output window
@@ -363,11 +389,11 @@ class CompilerApp:
 
   # Function to clear the editor
   def clear_editor(self):
+    self.code_frame_label.config(text="Untitled")
     self.code_text.delete(1.0, tk.END)
     self.reset_output_and_tree()
     self.console_text.delete(1.0, tk.END)
-    self.console_text.insert(tk.END, "Awaiting action...") # Reset the output label
-    
+    self.update_console_text("New file created. Awaiting action...", "overwrite")
 
   # Function to reset the output label and variable table
   def reset_output_and_tree(self):
