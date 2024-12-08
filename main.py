@@ -1,11 +1,21 @@
-# CMSC 129 PE04
-# by DUYAG, PADERNA, VILLAMOR
+# CMSC 129 Programming Project 
+# Simple Compiler for Integer-Oriented Language (IOL)
 
-import tkinter as tk
+# Authors:
+# - DUYAG, Charmagne Jane
+# - PADERNA, Rafael
+# - VILLAMOR, John Noel
+
+# Last Modified: 12/08/2024
+
+# Libraries
+import tkinter as tk # Tkinter for GUI
 from tkinter import ttk, Menu, filedialog, messagebox
-from lexical_analyzer import LexicalAnalyzer
-from symbol_table import SymbolTable
-from parser import Parser
+
+from lexical_analyzer import LexicalAnalyzer # Lexical Analysis component
+from parser import Parser # Syntax Analysis and Static Semantics component
+
+from symbol_table import SymbolTable # Symbol Table component
 from runtime import Runtime
 
 class CompilerApp:
@@ -21,6 +31,7 @@ class CompilerApp:
     self.file_directory = ""
     self.current_display_input = True
     self.opened_file = False
+    self.error_message = []
     
     # Initialize classes
     self.symbol_table = SymbolTable()
@@ -84,7 +95,7 @@ class CompilerApp:
     self.code_frame_wrapper.place(relx=0.03, rely=0.1, relwidth=0.65, relheight=0.65)
     
     # Tab label of source code area
-    self.tab_label = "Untitled"
+    self.tab_label = "Untitled.iol"
     self.code_frame_label = tk.Label(self.code_frame_wrapper, text=self.tab_label, font=("Arial", 12, "bold"), bg=self.bg_color, fg=self.text_color, anchor="w")
     self.code_frame_label.pack(side="top", fill="x", pady=(0, 2))  # Slight padding for separation
 
@@ -134,6 +145,7 @@ class CompilerApp:
       self.console_text.insert(tk.END, text) # Insert text
       self.console_text.see(tk.END) # Scroll to the end
       self.console_text.config(state=tk.DISABLED) # Disable text editing
+      
     else: # Overwrite text
       self.console_text.config(state=tk.NORMAL)
       self.console_text.delete(1.0, tk.END) # Reset text for overwriting
@@ -230,7 +242,7 @@ class CompilerApp:
     code = self.code_text.get(1.0, tk.END).strip()
     self.current_input = code
     
-    if not code:
+    if not code: # Empty code textarea
       self.update_console_text("Lexical Analysis failed. No code to analyze.", "overwrite")
       return False
     
@@ -238,8 +250,7 @@ class CompilerApp:
     end_code = code.split("\n")[-1].strip().split(' ')[-1] 
     
     if start_code != "IOL" or end_code != "LOI":
-      messagebox.showwarning("Alert", "Invalid code. Please ensure that the code starts with IOL and ends with LOI.")
-      self.update_console_text("Lexical Analysis failed. Invalid code.", "overwrite")
+      self.update_console_text("Lexical Analysis failed. Please ensure that the code starts with IOL and ends with LOI.", "overwrite")
       return False
     
     self.lexical_analyzer.tokenizeInput(code)
@@ -255,20 +266,21 @@ class CompilerApp:
     self.show_variables(variables)
 
     lexical_output = self.lexical_analyzer.getOutput()
+    
+    # Tokenize the output 
     for token in lexical_output:
       for item in lexical_output[token]:
          self.tokenized_output += f"{item['name']} "
       self.tokenized_output += "\n"
     
+    # Check for errors in lexical analysis
     if self.lexical_analyzer.errors:
-      error_message = "\n".join(self.lexical_analyzer.errors)
-      self.update_console_text(f"Compilation completed. Lexical errors found:\n{error_message}", "overwrite")
-      return False
-    
+      for error in self.lexical_analyzer.errors:
+        self.error_message.append(error)
+      
+    # Write tokenized output to a file
     with open(f"{self.file_directory}/output.tkn", "w") as file:
       file.write(self.tokenized_output)
-    
-    return True
   
   # Function to perform syntax analysis on the tokenized code
   def perform_syntax_analysis(self):
@@ -276,24 +288,31 @@ class CompilerApp:
     
     self.parser.parse(tokens) # Parse the tokenized code
     
-    return self.parser.is_valid # Return if the code is valid or not
+    for error in self.parser.errors:
+      self.error_message.append(error)
     
   def compile_code(self):
     self.tokenized_output = ""
     self.current_input = self.code_text.get(1.0, tk.END).strip()
     
-    if not self.current_display_input:
+    if not self.current_display_input: # If the code has been modified, update the current input
         return
     
-    if not self.perform_lexical_analysis():
-        return
+    self.perform_lexical_analysis()  # Perform lexical analysis
     
-    if not self.perform_syntax_analysis():
-        return
+    self.perform_syntax_analysis() # Perform syntax analysis
     
+    # Guard clause for any errors in lexical, syntax, and static semantics
+    if self.error_message:
+      self.update_console_text(f"Compilation completed with errors:\n\n", "overwrite")
+     
+      for error in self.error_message: # Display errors
+        self.update_console_text(f"{error}\n", "insert")
+      
+      return # Do not proceed to execution if there are errors
+    
+    # If no errors, proceed to execution
     self.update_console_text("Code compiled with no errors found. Program will now be executed...", "overwrite")
-    
-    # Execute the code right after compilation
     self.execute_code()
     
   def execute_code(self):
@@ -313,12 +332,8 @@ class CompilerApp:
         self.update_console_text("Execution failed. Please compile the code first.\n", "overwrite")
         return
     
-    # Check for any errors in syntax or static semantics
-    for error in self.parser.error_message:
-      self.update_console_text(f"Compilation failed. Errors encountered:\n\n", "overwrite")
-      self.update_console_text(f"{error}\n", "insert")
-      return
     
+    # Execute the code if there are no errors
     self.update_console_text("\n\n=== IOL Execution ===\n", "insert")
     self.runtime.process_input_code(tokens, self.symbol_table)
 

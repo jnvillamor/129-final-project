@@ -12,7 +12,7 @@ class Parser:
     self.total_output = []
 
     self.is_valid = bool
-    self.error_message = []
+    self.errors = []
 
     self.line_number = 1
 
@@ -124,14 +124,14 @@ class Parser:
         if (value["name"] == "IDENT"):
           variable_type = self.symbol_table.get_symbol(value["value"])["type"]
           if (variable_type != "INT"):
-            self.error_message.append(f'Semantic Error in line {self.declaration_line}: {value["value"]} is {variable_type} (Expected {var_data_type})')
+            self.errors.append(f'Semantic Error in line {self.declaration_line}: {value["value"]} is {variable_type} (Expected {var_data_type})')
       
       # Operations is detected
     if(len(self.declaration_stack) > 4):
       self.operation_stack = self.declaration_stack[3::]
       resulting_type = self._expressionSemanticAnalysis()
       if (var_data_type != resulting_type):
-        self.error_message.append(f"Semantic Error in line {self.declaration_line}: The resulting type of expression '{' '.join(list(map(lambda x: x['name'] if x['value'] == None else x['value'], self.operation_stack)))}' is {resulting_type}. (Expected {var_data_type})")
+        self.errors.append(f"Semantic Error in line {self.declaration_line}: The resulting type of expression '{' '.join(list(map(lambda x: x['name'] if x['value'] == None else x['value'], self.operation_stack)))}' is {resulting_type}. (Expected {var_data_type})")
       self._resetOperationStates()
 
 
@@ -146,13 +146,13 @@ class Parser:
       var_type = var["type"]
 
       if (variable_type == "INT" and var_type == "STR"):
-        self.error_message.append(f"Semantic Error in line {self.in_assignment_line}: {value["value"]} is {var_type}. (Expected {variable_type})")
+        self.errors.append(f"Semantic Error in line {self.in_assignment_line}: {value["value"]} is {var_type}. (Expected {variable_type})")
         print(f"Semantic Error in line {self.in_assignment_line}: {value["value"]} is {var_type}. (Expected {variable_type})")
     elif (value["name"] in self.arithmetic_operators):
       self.operation_stack = self.assignment_stack[3::]
       resulting_type = self._expressionSemanticAnalysis()
       if (variable_type == "INT" and resulting_type == "STR"):
-        self.error_message.append(f"Semantic Error in line {self.in_assignment_line}: The resulting type of expression '{' '.join(list(map(lambda x: x['name'] if x['value'] == None else x['value'], self.operation_stack)))}' is {resulting_type}. (Exptected {variable_type})")
+        self.errors.append(f"Semantic Error in line {self.in_assignment_line}: The resulting type of expression '{' '.join(list(map(lambda x: x['name'] if x['value'] == None else x['value'], self.operation_stack)))}' is {resulting_type}. (Exptected {variable_type})")
         print(f"Semantic Error in line {self.in_assignment_line}: The resulting type of expression '{' '.join(list(map(lambda x: x['name'] if x['value'] == None else x['value'], self.operation_stack)))}' is {resulting_type}. (Exptected {variable_type})")
       self._resetOperationStates()
     
@@ -175,7 +175,7 @@ class Parser:
     # Reset the containers
     self.total_output = []
     self.input_buffer = []
-    self.error_message = []
+    self.errors = []
     self.is_valid = True
 
     # Append the end symbol
@@ -228,7 +228,7 @@ class Parser:
 
         # if there is token mismatch, append error message
         elif (current_symbol.isupper() and current_symbol != current_input["name"]):
-          self.error_message.append(f'Error at line {line}: Terminal mismatch - Expected {current_symbol}, found {current_input["name"]} with value {current_input["value"]}')
+          self.errors.append(f'Error on line {line} | Terminal mismatch - Expected {current_symbol}, found {current_input["name"]} with value {current_input["value"]}')
           self.is_valid = False
           break
 
@@ -239,7 +239,7 @@ class Parser:
 
           # If the parse_row or col is not a valid index raise error
           if parse_row == None or parse_col == None:
-            self.error_message.append(f'Error at line {line}: No production found for input {current_input["name"]} with value {current_input["value"]}')
+            self.errors.append(f'Error on line {line} | No production found for input {current_input["name"]} with value {current_input["value"]}')
             self.is_valid = False
             break
 
@@ -247,7 +247,7 @@ class Parser:
 
           # if the parse cell is empty raise error 
           if parse_cell == '':
-            self.error_message.append(f'Error at line {line}: No production found for input {current_input["name"]} with value {current_input["value"]}')
+            self.errors.append(f'Error on line {line} | No production found for input {current_input["name"]} with value {current_input["value"]}')
             self.is_valid = False
             break
           

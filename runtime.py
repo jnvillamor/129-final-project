@@ -40,7 +40,7 @@ class Runtime:
       op1_type = self.symbol_table.get_symbol(op1["value"])["type"]
       # if type is not int, raise an error
       if op1_type != "INT":
-        self.error_message.append(f"Error at line {self.line_number}: Operand {op1['value']} is not an integer")
+        self.error_message.append(f"Runtime error on line {self.line_number} | Operand {op1['value']} is not an integer")
         raise Exception(f"Error: Operand {op1['value']} is not an integer")
       
       op1_value = int(self.symbol_table.get_symbol(op1["value"])["value"])
@@ -62,8 +62,8 @@ class Runtime:
       op2_type = self.symbol_table.get_symbol(op2["value"])["type"]
       # if type is not int, raise an error
       if op2_type != "INT":
-        self.error_message.append(f"Error at line {self.line_number}: Operand {op2['value']} is not an integer")
-        raise Exception(f"Error: Operand {op2['value']} is not an integer")
+        self.error_message.append(f"Runtime error on line {self.line_number} | Operand {op2['value']} is not an integer")
+        raise Exception(f"Error | Operand {op2['value']} is not an integer")
       op2_value = int(self.symbol_table.get_symbol(op2["value"])["value"])
 
     # If the operand is an integer literal, get its value
@@ -85,11 +85,11 @@ class Runtime:
     elif current_operator == "DIV":
       if op2_value == 0:
         if op2["name"] == "IDENT":
-          self.error_message.append(f"Error at line {self.line_number}: Division by zero in variable {op2['value']}")
-          raise Exception(f"Error at line {self.line_number}: Division by zero in variable {op2['value']}")
+          self.error_message.append(f"Runtime error on line {self.line_number} | Division by zero in variable {op2['value']}")
+          raise Exception(f"Runtime error on line {self.line_number} | Division by zero in variable {op2['value']}")
         else:
-          self. error_message.append(f"Error at line {self.line_number}: Division by zero in integer literal {op2['value']}")
-          raise Exception(f"Error at line {self.line_number}: Division by zero in integer literal {op2['value']}")
+          self. error_message.append(f"Runtime error on line {self.line_number} | Division by zero in integer literal {op2['value']}")
+          raise Exception(f"Runtime error on line {self.line_number} | Division by zero in integer literal {op2['value']}")
       return op1_value / op2_value
     
   def _process_print(self):
@@ -184,9 +184,9 @@ class Runtime:
         
         # if the variable is not in the symbol table, raise an error
         if not self.symbol_table.get_symbol(variable["value"]):
-          self.error_message.append(f"Error at line {self.line_number}: Variable {variable['value']} is not declared")
+          self.error_message.append(f"Runtime error on line {self.line_number} | Variable {variable['value']} is not declared")
           break
-          # raise Exception(f"Error at line {self.line_number}: Variable {variable['value']} is not declared")
+          # raise Exception(f"Runtime error on line {self.line_number} | Variable {variable['value']} is not declared")
         
         self.console_text_widget.config(state=tk.NORMAL)
         self.console_text_widget.insert(tk.END, "Input for " + variable["value"] + ": ")
@@ -204,11 +204,11 @@ class Runtime:
           print("Input for int: ", user_input)
           
           if not re.fullmatch(r'^[0-9]+$', user_input):
-            self.error_message.append(f"Error at line {self.line_number}: Expected an integer for variable {variable['value']}")
+            self.error_message.append(f"Runtime error on line {self.line_number} | Expected an integer for variable {variable['value']}")
             break
          
           if user_input == "":  # If the user input is empty, raise error
-            self.error_message.append(f"Error at line {self.line_number}: Empty input for variable {variable['value']}")
+            self.error_message.append(f"Runtime error on line {self.line_number} | Empty input for variable {variable['value']}")
             break
             
           self.symbol_table.update_symbol(variable["value"], int(user_input)) # Update variable value if the user input is valid
@@ -223,7 +223,7 @@ class Runtime:
         elif variable_type == "STR": # STR input
           # Validate that the input is not a pure number
           if re.fullmatch(r'^[0-9]+$', user_input):
-            self.error_message.append(f"Error at line {self.line_number}: Expected a string for variable {variable['value']}")
+            self.error_message.append(f"Runtime error on line {self.line_number} | Expected a string for variable {variable['value']}")
             break
           
           self.symbol_table.update_symbol(variable["value"], user_input)
