@@ -39,7 +39,7 @@ class Runtime:
       Peeks the next token from the tokens dictionary.
     """
     commands = self.tokens[self.line_number]
-    return commands[self.token_index]
+    return commands[self.token_index] if self.token_index < len(commands) else None
   
   def _process_arithmetic_operator(self, current_operator: str):
     """
@@ -98,6 +98,8 @@ class Runtime:
           self. error_message.append(f"Runtime error on line {self.line_number} | Division by zero in integer literal {op2['value']}")
           raise Exception(f"Runtime error on line {self.line_number} | Division by zero in integer literal {op2['value']}")
       return op1_value / op2_value
+    elif current_operator == "MOD":
+      return op1_value % op2_value
     
   def _process_print(self):
     """
