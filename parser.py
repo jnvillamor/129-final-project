@@ -152,7 +152,7 @@ class Parser:
       self.operation_stack = self.assignment_stack[3::]
       resulting_type = self._expressionSemanticAnalysis()
       if (variable_type == "INT" and resulting_type == "STR"):
-        self.error_message.append(f"Semantic Error in line {self.in_assignment_line}: The resulting type of expression The resulting type of expression '{' '.join(list(map(lambda x: x['name'] if x['value'] == None else x['value'], self.operation_stack)))}' is {resulting_type}. (Exptected {variable_type})")
+        self.error_message.append(f"Semantic Error in line {self.in_assignment_line}: The resulting type of expression '{' '.join(list(map(lambda x: x['name'] if x['value'] == None else x['value'], self.operation_stack)))}' is {resulting_type}. (Exptected {variable_type})")
         print(f"Semantic Error in line {self.in_assignment_line}: The resulting type of expression '{' '.join(list(map(lambda x: x['name'] if x['value'] == None else x['value'], self.operation_stack)))}' is {resulting_type}. (Exptected {variable_type})")
       self._resetOperationStates()
     
