@@ -40,7 +40,9 @@ class Runtime:
       op1_type = self.symbol_table.get_symbol(op1["value"])["type"]
       # if type is not int, raise an error
       if op1_type != "INT":
+        self.error_message.append(f"Error at line {self.line_number}: Operand {op1['value']} is not an integer")
         raise Exception(f"Error: Operand {op1['value']} is not an integer")
+      
       op1_value = int(self.symbol_table.get_symbol(op1["value"])["value"])
 
     # If the operand is an integer literal, get its value
@@ -60,6 +62,7 @@ class Runtime:
       op2_type = self.symbol_table.get_symbol(op2["value"])["type"]
       # if type is not int, raise an error
       if op2_type != "INT":
+        self.error_message.append(f"Error at line {self.line_number}: Operand {op2['value']} is not an integer")
         raise Exception(f"Error: Operand {op2['value']} is not an integer")
       op2_value = int(self.symbol_table.get_symbol(op2["value"])["value"])
 
@@ -82,8 +85,10 @@ class Runtime:
     elif current_operator == "DIV":
       if op2_value == 0:
         if op2["name"] == "IDENT":
+          self.error_message.append(f"Error at line {self.line_number}: Division by zero in variable {op2['value']}")
           raise Exception(f"Error at line {self.line_number}: Division by zero in variable {op2['value']}")
         else:
+          self. error_message.append(f"Error at line {self.line_number}: Division by zero in integer literal {op2['value']}")
           raise Exception(f"Error at line {self.line_number}: Division by zero in integer literal {op2['value']}")
       return op1_value / op2_value
     
@@ -124,6 +129,9 @@ class Runtime:
     current_token = self._get_next_token()
 
     while current_token["name"] != "LOI":
+      if self.error_message: # If any error message is encountered, stop the runtime
+        break
+      
       if current_token["name"] in self.arithmetic_operators:
         result = self._process_arithmetic_operator(current_token["name"])
 
@@ -164,6 +172,7 @@ class Runtime:
             ident_value = self.symbol_table.get_symbol(value["value"])["value"]
             ident_type = self.symbol_table.get_symbol(value["value"])["type"]
             if ident_type == "STR":
+                self.error_message.append(f"Error: Cannot store f{ident_type} type into variable f{variable['name']}")
                 raise Exception(f"Error: Cannot store f{ident_type} type into variable f{variable["name"]}")
             self.symbol_table.update_symbol(variable["value"], int(ident_value))
         

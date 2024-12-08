@@ -13,6 +13,7 @@ class CompilerApp:
   Main class to represent the IDE.
   """
   def __init__(self):
+    # Initialize variables
     self.is_dark_mode = True
     self.variables = []
     self.current_input = ""
@@ -21,6 +22,7 @@ class CompilerApp:
     self.current_display_input = True
     self.opened_file = False
     
+    # Initialize classes
     self.symbol_table = SymbolTable()
     self.lexical_analyzer = LexicalAnalyzer()
     self.parser = Parser(self.symbol_table)
@@ -49,7 +51,7 @@ class CompilerApp:
 
     # File Menu
     self.file_menu = Menu(self.menu, tearoff=0)
-    self.file_menu.add_command(label="New File", command=self.clear_editor, accelerator="Ctrl+N")
+    self.file_menu.add_command(label="New File", command=self.new_file, accelerator="Ctrl+N")
     self.file_menu.add_command(label="Open File", command=self.open_file, accelerator="Ctrl+O")
     self.file_menu.add_command(label="Save", command=self.save_file, accelerator="Ctrl+S")
     self.file_menu.add_command(label="Save As", command=self.save_file_as, accelerator="Ctrl+Shift+S")
@@ -69,7 +71,7 @@ class CompilerApp:
     self.main_window.config(menu=self.menu)
 
     # Bind keyboard shortcuts
-    self.main_window.bind("<Control-n>", lambda event: self.clear_editor())
+    self.main_window.bind("<Control-n>", lambda event: self.new_file())
     self.main_window.bind("<Control-o>", lambda event: self.open_file())
     self.main_window.bind("<Control-s>", lambda event: self.save_file())
     self.main_window.bind("<Control-S>", lambda event: self.save_file_as())
@@ -125,52 +127,47 @@ class CompilerApp:
     # Initialize Runtime after code_text and console_text are created
     self.runtime = Runtime(self.console_text)
   
+  # Function to update the console text
   def update_console_text(self, text: str, operation: str = "insert"):
-    # if the operation is insert, enable the text widget, append the text, and disable it again
-    if operation == "insert":
+    if operation == "insert": # Append text
+      self.console_text.config(state=tk.NORMAL) # Enable text editing
+      self.console_text.insert(tk.END, text) # Insert text
+      self.console_text.see(tk.END) # Scroll to the end
+      self.console_text.config(state=tk.DISABLED) # Disable text editing
+    else: # Overwrite text
       self.console_text.config(state=tk.NORMAL)
-      self.console_text.insert(tk.END, text)
-      self.console_text.see(tk.END)
-      self.console_text.config(state=tk.DISABLED)
-    else:
-      self.console_text.config(state=tk.NORMAL)
-      self.console_text.delete(1.0, tk.END)
+      self.console_text.delete(1.0, tk.END) # Reset text for overwriting
       self.console_text.insert(tk.END, text)
       self.console_text.see(tk.END)
       self.console_text.config(state=tk.DISABLED)
       
+  # Function to run the main application
   def run(self):
-    self.apply_theme()
-    
-    # Run the main application
-    self.main_window.mainloop()
+    self.apply_dark_mode() # Dark mode theme
+    self.main_window.mainloop() # Run the main application
   
   # Function to apply theme changes
-  def apply_theme(self):
+  def apply_dark_mode(self):
     self.main_window.config(bg=self.bg_color)
     self.code_frame.config(bg=self.bg_color)
     self.code_text.config(bg=self.frame_color, fg=self.text_color, insertbackground=self.text_color)
     self.console_frame.config(bg=self.bg_color)
     self.console_text.config(bg=self.frame_color, fg=self.text_color)
     self.variables_frame.config(bg=self.bg_color)
-    # self.button_container.config(bg=self.bg_color)
 
     # Treeview widget colors
     self.style = ttk.Style()
     self.style.configure("Treeview", background=self.frame_color, foreground=self.text_color, fieldbackground=self.frame_color)
     self.style.map("Treeview", background=[('selected', self.button_color)], foreground=[('selected', 'white')])
 
-  # Function to generate a button with rounded corners
-  def generate_rounded_button(self, parent, label, action):
-    canvas = tk.Canvas(parent, width=200, height=40, bg=self.bg_color, highlightthickness=0)
-    canvas.pack(pady=20)
-    canvas.create_oval(0, 0, 40, 40, fill=self.button_color, outline=self.button_color)
-    canvas.create_oval(160, 0, 200, 40, fill=self.button_color, outline=self.button_color)
-    canvas.create_rectangle(20, 0, 180, 40, fill=self.button_color, outline=self.button_color)
-    canvas.create_text(100, 20, text=label, fill=self.text_color, font=("Arial", 12))
-    canvas.bind("<Button-1>", lambda event: action())
-    return canvas
-
+  # Function to handle new file creation
+  def new_file(self):
+    self.code_frame_label.config(text="Untitled")
+    self.code_text.delete(1.0, tk.END)
+    self.reset_console_and_variables()
+    self.console_text.delete(1.0, tk.END)
+    self.update_console_text("New file created. Awaiting action...", "overwrite")
+    
   # Function to open a file and load its content
   def open_file(self):
     file_path = filedialog.askopenfilename(filetypes=[("Input files", "*.iol")])
@@ -226,7 +223,7 @@ class CompilerApp:
 
   # Function to perform lexical analysis (tokenization) on the code
   def perform_lexical_analysis(self):
-    self.reset_output_and_tree()
+    self.reset_console_and_variables()
     self.symbol_table.remove_all_symbols()
     self.lexical_analyzer.variables.clear()
 
@@ -271,26 +268,15 @@ class CompilerApp:
     with open(f"{self.file_directory}/output.tkn", "w") as file:
       file.write(self.tokenized_output)
     
-    # self.console_text.insert(tk.END, "Lexical Analysis completed successfully. \n")
     return True
   
   # Function to perform syntax analysis on the tokenized code
   def perform_syntax_analysis(self):
-    # Parse the tokenized code
-    self.parser.parse(self.lexical_analyzer.getOutput())
+    tokens = self.lexical_analyzer.getOutput() # Get the tokenized code
     
-    if self.parser.is_valid:
-      # self.console_text.insert(tk.END, "Syntax Analysis completed successfully. \n")
-      return True
-    else:
-      self.update_console_text(f"Compilation completed. Syntax errors found:\n{self.parser.error_message}\n", "overwrite")
-      
-    if self.parser.error_message:
-      error_message = "\n".join(self.parser.error_message)
-      self.update_console_text(f"Compilation completed. Syntax errors found:\n{error_message}", "overwrite")
-      return False
+    self.parser.parse(tokens) # Parse the tokenized code
     
-    return self.parser.is_valid
+    return self.parser.is_valid # Return if the code is valid or not
     
   def compile_code(self):
     self.tokenized_output = ""
@@ -318,7 +304,7 @@ class CompilerApp:
     code = self.code_text.get(1.0, tk.END).strip()
     self.current_input = code
     
-    if not code:
+    if not code: # Empty code textarea
       self.update_console_text("Execution failed. No code to execute.", "overwrite")
       return
     
@@ -326,6 +312,12 @@ class CompilerApp:
     if not tokens:
         self.update_console_text("Execution failed. Please compile the code first.\n", "overwrite")
         return
+    
+    # Check for any errors in syntax or static semantics
+    for error in self.parser.error_message:
+      self.update_console_text(f"Compilation failed. Errors encountered:\n\n", "overwrite")
+      self.update_console_text(f"{error}\n", "insert")
+      return
     
     self.update_console_text("\n\n=== IOL Execution ===\n", "insert")
     self.runtime.process_input_code(tokens, self.symbol_table)
@@ -368,7 +360,6 @@ class CompilerApp:
 
   # Function to display variables in the symbol table
   def show_variables(self, variable_list):
-    
     # Clear existing rows in the treeview
     for item in self.tree.get_children():
         self.tree.delete(item)
@@ -386,24 +377,15 @@ class CompilerApp:
         # Insert values into the treeview
         self.tree.insert('', 'end', values=(variable, var_type, var_value))
 
-  # Function to clear the editor
-  def clear_editor(self):
-    self.code_frame_label.config(text="Untitled")
-    self.code_text.delete(1.0, tk.END)
-    self.reset_output_and_tree()
-    self.console_text.delete(1.0, tk.END)
-    self.update_console_text("New file created. Awaiting action...", "overwrite")
-
-  # Function to reset the output label and variable table
-  def reset_output_and_tree(self):
+  # Function used to reset the console and variables
+  def reset_console_and_variables(self):
     self.current_input = "" # Reset current input
     self.variables = [] # Reset variables
-    self.symbol_table.remove_all_symbols() # Clear the symbol table
-    self.show_variables(self.symbol_table.get_symbol_table()) # Clear the treeview widget
-    self.console_text.insert(tk.END, "Awaiting action...") # Reset the output label
+    self.symbol_table.remove_all_symbols() # Clear symbol table
+    self.show_variables(self.symbol_table.get_symbol_table()) # Clear variables table
+    self.console_text.insert(tk.END, "Awaiting action...") # Reset console text
 
 # Main function to run the application
-    
 if __name__ == "__main__":
   app = CompilerApp()
   app.run()
