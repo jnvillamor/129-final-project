@@ -155,8 +155,12 @@ class Runtime:
 
           if value["name"] == "INT_LIT":
             self.symbol_table.update_symbol(variable["value"], int(value["value"]))
+            
           elif value["name"] == "IDENT":
             ident_value = self.symbol_table.get_symbol(value["value"])["value"]
+            ident_type = self.symbol_table.get_symbol(value["value"])["type"]
+            if ident_type == "STR":
+                raise Exception(f"Error: Cannot store f{ident_type} type into variable f{variable["name"]}")
             self.symbol_table.update_symbol(variable["value"], int(ident_value))
         
       # Input operation in the form BEG var_name  
