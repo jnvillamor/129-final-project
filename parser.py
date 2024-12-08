@@ -26,6 +26,8 @@ class Parser:
     self.declaration_line = 0
 
     self.in_assignment = False
+    self.assignment_stack = []
+    self.in_assignment_line = 0
 
     self._getProdTable();
     self._getParseTable()
@@ -122,18 +124,54 @@ class Parser:
         if (value["name"] == "IDENT"):
           variable_type = self.symbol_table.get_symbol(value["value"])["type"]
           if (variable_type != "INT"):
-            self.error_message.append(f'Semantic Error: {value["value"]} is {variable_type} (Expected {var_data_type})')
+            self.error_message.append(f'Semantic Error in line {self.declaration_line}: {value["value"]} is {variable_type} (Expected {var_data_type})')
       
       # Operations is detected
     if(len(self.declaration_stack) > 4):
       self.operation_stack = self.declaration_stack[3::]
       resulting_type = self._expressionSemanticAnalysis()
       if (var_data_type != resulting_type):
-        self.error_message.append(f"Semantic Error in line {self.declaration_line}: The resulting type of expression '{' '.join(list(map(lambda x: x['name'] if x['value'] == None else x['value'], self.operation_stack)))}' is {resulting_type} (expected {var_data_type})")
+        self.error_message.append(f"Semantic Error in line {self.declaration_line}: The resulting type of expression '{' '.join(list(map(lambda x: x['name'] if x['value'] == None else x['value'], self.operation_stack)))}' is {resulting_type}. (Expected {var_data_type})")
+      self._resetOperationStates()
 
-      self.operation_stack_index = 0
-      self.operation_stack = []
 
+  def _assignmentSemanticAnalysis(self):
+    variable = self.assignment_stack[1]
+    variable_type = self.symbol_table.get_symbol(variable["value"])["type"]
+    value = self.assignment_stack[3]
+
+    # Check if value is ident
+    if (value["name"] == "IDENT"):
+      var = self.symbol_table.get_symbol(value["value"])
+      var_type = var["type"]
+
+      if (variable_type == "INT" and var_type == "STR"):
+        self.error_message.append(f"Semantic Error in line {self.in_assignment_line}: {value["value"]} is {var_type}. (Exptected {variable_type})")
+        print(f"Semantic Error in line {self.in_assignment_line}: {value["value"]} is {var_type}. (Exptected {variable_type})")
+    elif (value["name"] in self.arithmetic_operators):
+      self.operation_stack = self.assignment_stack[3::]
+      resulting_type = self._expressionSemanticAnalysis()
+      if (variable_type == "INT" and resulting_type == "STR"):
+        self.error_message.append(f"Semantic Error in line {self.in_assignment_line}: The resulting type of expression The resulting type of expression '{' '.join(list(map(lambda x: x['name'] if x['value'] == None else x['value'], self.operation_stack)))}' is {resulting_type}. (Exptected {variable_type})")
+        print(f"Semantic Error in line {self.in_assignment_line}: The resulting type of expression '{' '.join(list(map(lambda x: x['name'] if x['value'] == None else x['value'], self.operation_stack)))}' is {resulting_type}. (Exptected {variable_type})")
+      self._resetOperationStates()
+    
+
+
+  def _resetVarDeclStates(self):
+    self.in_declaration = False
+    self.declaration_stack = []
+    self.declaration_line = 0
+  
+  def _resetAssignState(self):
+    self.in_assignment = False
+    self.assignment_stack = []
+    self.assignment_stack_index = 0
+    self.in_assignment_line = 0
+  
+  def _resetOperationStates(self):
+    self.operation_stack = []
+    self.operation_stack_index = 0
 
   def parse(self, input_tokens: list[dict]):
     # Reset the containers
@@ -170,9 +208,20 @@ class Parser:
         
         # If the current symbol matches the current input
         if (current_symbol == current_input["name"]):
+          if (current_symbol == "LOI"):
+            if (self.in_assignment):
+              self._assignmentSemanticAnalysis()
+              self._resetAssignState()
+            elif (self.in_declaration):
+              self._varDeclarationSemanticAnalysis()
+              self._resetVarDeclStates()
+
           if (self.in_declaration):
             self.declaration_stack.append(current_input)
-            
+          
+          if (self.in_assignment):
+            self.assignment_stack.append(current_input)
+
           # Remove the input from the input buffer
           self.input_buffer.pop(0)
           # Update the current symbol and input
@@ -215,18 +264,34 @@ class Parser:
             if (self.in_declaration):
               # Perform semantic analysis
               self._varDeclarationSemanticAnalysis()
-              self.declaration_stack = []
-            else:
-              self.in_declaration = True
-              self.declaration_line = line
+              self._resetVarDeclStates
+            
+            self.in_declaration = True
+            self.declaration_line = line
           if (self.in_declaration and production_name == "VarDeclTail"):
             if ('e' in production_symbols):
               self._varDeclarationSemanticAnalysis()
-              self.in_declaration = False
-              self.declaration_stack = []
+              self._resetVarDeclStates
 
-          if(production == "Assignment"):
+          if(production_name == "Assignment"):
+            self.in_declaration = False
+
+            if(self.in_assignment):
+              self._assignmentSemanticAnalysis()
+              self._resetAssignState()
+            
             self.in_assignment = True
+            self.in_assignment_line = line
+          
+          if(production_name in ["Input", "Output"]):
+            if (self.in_assignment):
+              self._assignmentSemanticAnalysis()
+              self._resetAssignState()
+
+            elif (self.in_declaration):
+              print(f"Performing semantic analysis for variable declaration")
+              self._varDeclarationSemanticAnalysis()
+              self._resetVarDeclStates()
             
 
           # Add the symbols to stack in reverse order
