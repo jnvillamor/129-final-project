@@ -303,10 +303,11 @@ class CompilerApp:
     if not self.perform_syntax_analysis():
         return
     
-    self.update_console_text("Code compiled with no errors found. Program will now be executed...\n\n", "overwrite")
+    self.update_console_text("Code compiled with no errors found. Program will now be executed...\n", "overwrite")
     
   def execute_code(self):
-    self.update_console_text("=== IOL Execution ===\n", "overwrite")
+    self.update_console_text("\n=== IOL Execution ===\n", "insert")
+    # Check if the code has been compiled
     tokens = self.lexical_analyzer.getOutput()
     self.runtime.process_input_code(tokens, self.symbol_table)
 

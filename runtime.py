@@ -1,3 +1,4 @@
+import re
 import tkinter as tk 
 from symbol_table import SymbolTable
 
@@ -9,8 +10,10 @@ class Runtime:
 
     self.line_number = 1
     self.token_index = 0
+    
+    self.error_message = []
 
-    self.arithmetic_operators = ["ADD", "SUB", "MULT", "DIV"]
+    self.arithmetic_operators = ["ADD", "SUB", "MULT", "DIV", "MOD"]
 
   def _get_next_token(self):
     commands = self.tokens[self.line_number]
@@ -106,7 +109,8 @@ class Runtime:
       self.console_text_widget.config(state=tk.NORMAL)
       self.console_text_widget.insert(tk.END, result)
       self.console_text_widget.config(state=tk.DISABLED)
-
+  
+  # Iterate through the tokens and process them
   def process_input_code(self, tokens: dict, symbol_table: SymbolTable):
     self.symbol_table = symbol_table
     self.tokens = tokens
@@ -155,5 +159,70 @@ class Runtime:
             ident_value = self.symbol_table.get_symbol(value["value"])["value"]
             self.symbol_table.update_symbol(variable["value"], int(ident_value))
         
+      # Input operation in the form BEG var_name  
+      elif current_token["name"] == "BEG":
+        variable = self._get_next_token()
+        variable_type = self.symbol_table.get_symbol(variable["value"])["type"]
+        # print("variable", variable)
+        
+        # if the variable is not in the symbol table, raise an error
+        if not self.symbol_table.get_symbol(variable["value"]):
+          self.error_message.append(f"Error at line {self.line_number}: Variable {variable['value']} is not declared")
+          break
+          # raise Exception(f"Error at line {self.line_number}: Variable {variable['value']} is not declared")
+        
+        self.console_text_widget.config(state=tk.NORMAL)
+        self.console_text_widget.insert(tk.END, "Input for " + variable["value"] + ": ")
+        self.console_text_widget.config(state=tk.DISABLED) 
+               
+        # Get user input
+        user_input = tk.simpledialog.askstring("Input", f"Enter value for {variable['value']} (type: {variable_type})")
+        
+        # Check data type of user input and match with variable type
+        if variable_type == "INT":  
+          if not re.fullmatch(r'^[0-9]+$', user_input):
+            self.error_message.append(f"Error at line {self.line_number}: Expected an integer for variable {variable['value']}")
+            break
+         
+          if user_input == "" or None:  # If the user input is empty, raise error
+            self.error_message.append(f"Error at line {self.line_number}: Empty input for variable {variable['value']}")
+            break
+            
+          self.symbol_table.update_symbol(variable["value"], int(user_input)) # Update variable value if the user input is valid
+          print("Updated variable", variable["value"], "to", user_input)
+          
+          # Update console text widget
+          self.console_text_widget.config(state=tk.NORMAL)
+          self.console_text_widget.insert(tk.END, user_input + "\n") 
+          self.console_text_widget.config(state=tk.DISABLED)
+            
+        elif variable_type == "STR": # STR input
+          # Validate that the input is not a pure number
+          if re.fullmatch(r'^[0-9]+$', user_input):
+            self.error_message.append(f"Error at line {self.line_number}: Expected a string for variable {variable['value']}")
+            break
+          
+          self.symbol_table.update_symbol(variable["value"], user_input)
+          print("Updated variable", variable["value"], "to", user_input)
+          
+          self.console_text_widget.config(state=tk.NORMAL)
+          self.console_text_widget.insert(tk.END, user_input + "\n")
+          self.console_text_widget.config(state=tk.DISABLED)
+      
+      # If there is any error message, update the console and stop runtime
+      if self.error_message:
+        self.console_text_widget.config(state=tk.NORMAL)
+        for error in self.error_message:
+          self.console_text_widget.insert(tk.END, error + "\n")
+          
+        self.console_text_widget.insert(tk.END, "\nProgram terminated due to errors...")
+        self.console_text_widget.config(state=tk.DISABLED)
+        
+        break 
+      
       current_token = self._get_next_token()
+    
+    self.console_text_widget.config(state=tk.NORMAL)
+    self.console_text_widget.insert(tk.END, "\n\nProgram terminated successfully...")
+    self.console_text_widget.config(state=tk.DISABLED)
 
