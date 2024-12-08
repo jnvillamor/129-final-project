@@ -298,6 +298,7 @@ class CompilerApp:
     if not self.current_display_input: # If the code has been modified, update the current input
         return
     
+    self.symbol_table.remove_all_symbols()
     self.perform_lexical_analysis()  # Perform lexical analysis
     
     self.perform_syntax_analysis() # Perform syntax analysis
