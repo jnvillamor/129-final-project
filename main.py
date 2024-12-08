@@ -13,14 +13,13 @@ import tkinter as tk # Tkinter for GUI
 from tkinter import ttk, Menu, filedialog, messagebox
 
 from lexical_analyzer import LexicalAnalyzer # Lexical Analysis component
-from parser import Parser # Syntax Analysis and Static Semantics component
-
 from symbol_table import SymbolTable # Symbol Table component
-from runtime import Runtime
+from parser import Parser # Syntax Analysis and Static Semantics component
+from runtime import Runtime # Runtime component
 
 class CompilerApp:
   """
-  Main class to represent the IDE.
+  Main class to represent the GUI of the compiler application.
   """
   def __init__(self):
     # Initialize variables
@@ -79,6 +78,7 @@ class CompilerApp:
     self.run_menu.add_command(label="Execute Code", command=self.execute_code, accelerator="Ctrl+E")
     self.menu.add_cascade(label="Run", menu=self.run_menu)
     
+    # Add menu to the main window
     self.main_window.config(menu=self.menu)
 
     # Bind keyboard shortcuts
@@ -127,7 +127,7 @@ class CompilerApp:
     self.variables_frame = tk.Frame(self.variables_frame_wrapper, bg=self.bg_color, bd=0)
     self.variables_frame.pack(fill="both", expand=True)
 
-    # Treeview for the variables
+    # Treeview for the variables table
     self.tree = ttk.Treeview(self.variables_frame, columns=("Variable", "Type"), show="headings")
     self.tree.heading("Variable", text="Variable")
     self.tree.heading("Type", text="Type")
@@ -153,13 +153,17 @@ class CompilerApp:
       self.console_text.see(tk.END)
       self.console_text.config(state=tk.DISABLED)
       
-  # Function to run the main application
   def run(self):
+    """
+      Function to run the main application.
+    """
     self.apply_dark_mode() # Dark mode theme
     self.main_window.mainloop() # Run the main application
   
-  # Function to apply theme changes
   def apply_dark_mode(self):
+    """
+      Function to apply dark mode theme to the application.
+    """
     self.main_window.config(bg=self.bg_color)
     self.code_frame.config(bg=self.bg_color)
     self.code_text.config(bg=self.frame_color, fg=self.text_color, insertbackground=self.text_color)
@@ -172,16 +176,20 @@ class CompilerApp:
     self.style.configure("Treeview", background=self.frame_color, foreground=self.text_color, fieldbackground=self.frame_color)
     self.style.map("Treeview", background=[('selected', self.button_color)], foreground=[('selected', 'white')])
 
-  # Function to handle new file creation
   def new_file(self):
-    self.code_frame_label.config(text="Untitled")
-    self.code_text.delete(1.0, tk.END)
+    """
+      Function to create a new file in the application.
+    """
+    self.code_frame_label.config(text="Untitled.iol") # Reset tab label 
+    self.code_text.delete(1.0, tk.END) 
     self.reset_console_and_variables()
     self.console_text.delete(1.0, tk.END)
     self.update_console_text("New file created. Awaiting action...", "overwrite")
     
-  # Function to open a file and load its content
   def open_file(self):
+    """
+      Function to open an .iol input file and load its content.
+    """
     file_path = filedialog.askopenfilename(filetypes=[("Input files", "*.iol")])
     if file_path:
       self.file_directory = file_path.split("/")
@@ -200,8 +208,10 @@ class CompilerApp:
       
       self.update_console_text(f"Input {self.tab_label} file loaded successfully.", "overwrite")
   
-  # Function to save the current code to a file
   def save_file(self):
+    """
+      Function to save to the same (opened) file or to a new file.
+    """
     file_path = filedialog.asksaveasfilename(defaultextension=".iol", filetypes=[("IOL Files", "*.iol")])
     if file_path:
       with open(file_path, 'w') as file:
@@ -217,9 +227,10 @@ class CompilerApp:
         self.opened_file = False
         self.update_console_text(f"File saved successfully.", "overwrite")
       
-
-  # Function to save the current code to a file without changing the name
   def save_file_as(self):
+    """
+      Function to save the current code to a new file.
+    """
     file_path = filedialog.asksaveasfilename(defaultextension=".iol", filetypes=[("IOL Files", "*.iol")])
     if file_path:
       with open(file_path, 'w') as file:
@@ -233,70 +244,80 @@ class CompilerApp:
       
       self.update_console_text(f"File saved as {file_path.split('/')[-1]}.", "overwrite")
 
-  # Function to perform lexical analysis (tokenization) on the code
   def perform_lexical_analysis(self):
+    """
+      Function to perform lexical analysis on the code using the Lexical Analyzer.
+    """
+    # Reset existing symbols and variables
     self.reset_console_and_variables()
     self.symbol_table.remove_all_symbols()
     self.lexical_analyzer.variables.clear()
 
-    code = self.code_text.get(1.0, tk.END).strip()
+    code = self.code_text.get(1.0, tk.END).strip() # Get the current code
     self.current_input = code
     
     if not code: # Empty code textarea
       self.update_console_text("Lexical Analysis failed. No code to analyze.", "overwrite")
       return False
     
-    start_code = code.split("\n")[0].strip().split(' ')[0]
+    # Validate IOL and LOI start and end codes
+    start_code = code.split("\n")[0].strip().split(' ')[0] 
     end_code = code.split("\n")[-1].strip().split(' ')[-1] 
-    
     if start_code != "IOL" or end_code != "LOI":
       self.update_console_text("Lexical Analysis failed. Please ensure that the code starts with IOL and ends with LOI.", "overwrite")
       return False
     
+    # Tokenize the input code
     self.lexical_analyzer.tokenizeInput(code)
 
+    # Append existing variables to the symbol table
     for variable in self.lexical_analyzer.variables:
       self.symbol_table.add_symbol(
         variable["name"],
         variable["data_type"],
         variable["value"]
       )
-    
+      
+    # Display variables in the symbol table
     variables = self.symbol_table.get_symbol_table()
     self.show_variables(variables)
 
+    # Get the tokenized output
     lexical_output = self.lexical_analyzer.getOutput()
-    
-    # Tokenize the output 
     for token in lexical_output:
       for item in lexical_output[token]:
          self.tokenized_output += f"{item['name']} "
       self.tokenized_output += "\n"
     
+    # Write tokenized output to a file
+    with open(f"{self.file_directory}/output.tkn", "w") as file:
+      file.write(self.tokenized_output)
+      
     # Check for errors in lexical analysis
     if self.lexical_analyzer.errors:
       for error in self.lexical_analyzer.errors:
         self.error_message.append(error)
-      
-    # Write tokenized output to a file
-    with open(f"{self.file_directory}/output.tkn", "w") as file:
-      file.write(self.tokenized_output)
   
-  # Function to perform syntax analysis on the tokenized code
   def perform_syntax_analysis(self):
+    """
+      Function to perform syntax analysis on the tokenized code using the Parser.
+    """
     tokens = self.lexical_analyzer.getOutput() # Get the tokenized code
     
     self.parser.parse(tokens) # Parse the tokenized code
     
-    for error in self.parser.errors:
+    for error in self.parser.errors: # Check for errors in syntax and static semantics
       self.error_message.append(error)
     
   def compile_code(self):
-    self.tokenized_output = ""
-    self.current_input = self.code_text.get(1.0, tk.END).strip()
+    """
+      Function to compile the code by performing lexical and syntax analysis.
+    """
+    self.tokenized_output = "" # Reset tokenized output
+    self.current_input = self.code_text.get(1.0, tk.END).strip() # Get the current code
     
     if not self.current_display_input: # If the code has been modified, update the current input
-        return
+      return
     
     self.perform_lexical_analysis()  # Perform lexical analysis
     
@@ -316,6 +337,9 @@ class CompilerApp:
     self.execute_code()
     
   def execute_code(self):
+    """
+      Function to execute the code using the Runtime component.
+    """
     # Check if the code has been compiled
     tokens = self.lexical_analyzer.getOutput()
     
@@ -332,49 +356,51 @@ class CompilerApp:
         self.update_console_text("Execution failed. Please compile the code first.\n", "overwrite")
         return
     
-    
     # Execute the code if there are no errors
     self.update_console_text("\n\n=== IOL Execution ===\n", "insert")
     self.runtime.process_input_code(tokens, self.symbol_table)
 
-  # Function to perform tokenization based on regex patterns
-  def show_tokenized_output(self): 
-      # Get current text from code display area
-      current_text = self.code_text.get(1.0, tk.END).strip()
-      
-      # If text has been modified or not compiled yet
-      if current_text != self.current_input or not self.tokenized_output:
-          self.update_console_text("Please compile the code first.\n", "overwrite")
-          return
-          
-      # Create tokenized output window
-      token_window = tk.Toplevel()
-      token_window.title("Tokenized Code")
-      token_window.geometry("600x400")
-      
-      # Configure window to match main theme
-      token_window.configure(bg=self.bg_color)
-      
-      # Create text widget for tokenized output
-      token_text = tk.Text(
-          token_window, 
-          wrap=tk.WORD,
-          font=("Consolas", 12),
-          bg=self.frame_color,
-          fg=self.text_color,
-          padx=10,
-          pady=10
-      )
-      token_text.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
-      
-      # Insert tokenized output
-      token_text.insert(tk.END, self.tokenized_output)
-      
-      # Make text read-only
-      token_text.config(state=tk.DISABLED)
+  def show_tokenized_output(self):
+    """
+      Function to display the tokenized output of the code
+    """ 
+    current_text = self.code_text.get(1.0, tk.END).strip() # Get the current code
+    
+    # If text has been modified or not compiled yet
+    if current_text != self.current_input or not self.tokenized_output:
+        self.update_console_text("Please compile the code first.\n", "overwrite")
+        return
+        
+    # Create tokenized output window
+    token_window = tk.Toplevel()
+    token_window.title("Tokenized Code")
+    token_window.geometry("600x400")
+    
+    # Configure window to match main theme
+    token_window.configure(bg=self.bg_color)
+    
+    # Create text widget for tokenized output
+    token_text = tk.Text(
+        token_window, 
+        wrap=tk.WORD,
+        font=("Consolas", 12),
+        bg=self.frame_color,
+        fg=self.text_color,
+        padx=10,
+        pady=10
+    )
+    token_text.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
+    
+    # Insert tokenized output
+    token_text.insert(tk.END, self.tokenized_output)
+    
+    # Make text read-only
+    token_text.config(state=tk.DISABLED)
 
-  # Function to display variables in the symbol table
   def show_variables(self, variable_list):
+    """
+      Function to display the variables in the symbol table.
+    """
     # Clear existing rows in the treeview
     for item in self.tree.get_children():
         self.tree.delete(item)
